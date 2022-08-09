@@ -1,5 +1,5 @@
 # Solidity coding notes
 
-Including:
+## Including:
 
-- Ethernaut blockchain security wargame solutions
+- [Ethernaut blockchain security wargame solutions](https://github.com/ymart1n/coding-notes/blob/main/Solidity/ethernaut.md)
