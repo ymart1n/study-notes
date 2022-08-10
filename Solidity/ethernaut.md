@@ -983,6 +983,42 @@ contract A {
 
 2. **`Mappings`** and **`dynamically-sized arrays`** do not stick to these conventions. More on this at a later level.
 
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+contract Privacy {
+
+  bool public locked = true;
+  uint256 public ID = block.timestamp;
+  uint8 private flattening = 10;
+  uint8 private denomination = 255;
+  uint16 private awkwardness = uint16(now);
+  bytes32[3] private data;
+
+  constructor(bytes32[3] memory _data) public {
+    data = _data;
+  }
+
+  function unlock(bytes16 _key) public {
+    require(_key == bytes16(data[2]));
+    locked = false;
+  }
+
+  /*
+    A bunch of super advanced solidity algorithms...
+
+      ,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`
+      .,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,
+      *.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^         ,---/V\
+      `*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.    ~|__(o.o)
+      ^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'^`*.,*'  UU  UU
+  */
+}
+```
+
 `unlock` uses the third entry (index 2) of `data` which is a `bytes32` array. Let's determined `data`'s third entry's slot number (each slot can accommodate at most 32 bytes) according to storage rules:
 
 - `locked` is 1 byte `bool` in slot 0.
@@ -1013,7 +1049,7 @@ It can't get much more complicated than what was exposed in this level. For more
 **_Key Security Takeaways_**
 
 - In general, excessive slot usage wastes gas, especially if you declared structs that will reproduce many instances. **Remember to optimize your storage to save gas!**
-- Save your variables to `memory` if you don’t need to persist smart contract state. SSTORE <> SLOAD are very gas intensive opcodes.
+- Save your variables to `memory` if you don’t need to persist smart contract state. [SSTORE](https://www.ethervm.io/#SSTORE) and [SLOAD](https://www.ethervm.io/#SLOAD) are very gas intensive opcodes.
 - All storage is publicly visible on the blockchain, even your `private` variables!
 - Never store passwords and private keys without hashing them first
 - 1 byte = 8 bits = 2 hex
