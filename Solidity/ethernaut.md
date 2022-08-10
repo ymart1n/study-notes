@@ -1404,6 +1404,119 @@ contract GatePassTwo {
 
 ### Level 15. Naught Coin
 
+**Goal**: `player` is given `totalSupply` of a ERC20 Token - Naught Coin, but cannot transact them before 10 year lockout period. `player` has to get its token balance to 0.
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+
+ contract NaughtCoin is ERC20 {
+
+  // string public constant name = 'NaughtCoin';
+  // string public constant symbol = '0x0';
+  // uint public constant decimals = 18;
+  uint public timeLock = now + 10 * 365 days;
+  uint256 public INITIAL_SUPPLY;
+  address public player;
+
+  constructor(address _player)
+  ERC20('NaughtCoin', '0x0')
+  public {
+    player = _player;
+    INITIAL_SUPPLY = 1000000 * (10**uint256(decimals()));
+    // _totalSupply = INITIAL_SUPPLY;
+    // _balances[player] = INITIAL_SUPPLY;
+    _mint(player, INITIAL_SUPPLY);
+    emit Transfer(address(0), player, INITIAL_SUPPLY);
+  }
+
+  function transfer(address _to, uint256 _value) override public lockTokens returns(bool) {
+    super.transfer(_to, _value);
+  }
+
+  // Prevent the initial owner from transferring tokens until the timelock has passed
+  modifier lockTokens() {
+    if (msg.sender == player) {
+      require(now > timeLock);
+      _;
+    } else {
+      _;
+    }
+  }
+}
+```
+
+The trick here is that `transfer` is not the only method in `ERC20` (and hence, in `NaughtCoin` too) that includes code for transfer of tokens between addresses.
+
+According to `ERC20` spec, there's also an allowance mechanism that allows anyone to authorize someone else (the `spender`) to spend their tokens! This is exactly what `allowance(address owner, address spender)` method is for, in the `ERC20` contract. The allowance can then be transacted using the `transferFrom(address sender, address recipient, uint256 amount)` method.
+
+Apart from `player`, create another account named - `spender` in your wallet (MetaMask or some other wallet).
+
+Get the `player`'s total balance by:
+
+```js
+totalBalance = await contract.balanceOf(player).then((v) => v.toString());
+// Output: '1000000000000000000000000'
+```
+
+Make the `player` approve `spender` for all of it's tokens:
+
+```js
+await contract.approve(spender, totalBalance);
+```
+
+Make the `spender` to transfer all of it's allowance (which is equal to all of the tokens of `player`) to `spender` itself.
+
+I used MetaMask wallet and it connects only a single account at a time to an application. But we need both `player` and `spender` connected.
+
+For this, in a new browser window, go to Remix, and connect only the `spender` account to it. (Make sure `player` is disconnected from Remix and `spender` is disconnected from Ethernaut. For me, switching accounts in one window caused switch in other window too, otherwise).
+
+Create an interface to `NaughtCoin`:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+interface INaughtCoin {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+}
+```
+
+And load instance of `NaughtCoin` using **At Address** button with given instance address of `NaughtCoin`.
+
+Call the `transferFrom` method with params - `player` address as sender, `spender` address as recipient and `1000000000000000000000000` as amount.
+
+**_What is ERC20_**
+
+ERCs (_Ethereum Request for Comment_) are protocols that allow you to create tokens on the blockchain. ERC20, specifically, is a [contract interface](https://medium.com/coinmonks/ethernaut-lvl-11-elevator-walkthrough-how-to-abuse-solidity-interfaces-and-function-state-41005470121d) that defines standard ownership and transaction rules around tokens.
+
+![](https://miro.medium.com/max/1400/1*2DAKs3qHbu9vQ7bEreQSiA.png)
+
+Contextually, ERC20 was cool in 2015 because it was like an API that all developers agreed on. For the first time, anyone could create a new asset class. Developers came up with tokens like Dogecoin, Kucoin, Dentacoin… and could trust that their tokens were accepted by wallets, exchanges, and contracts everywhere.
+
+**_Security issues that accompanied ERC20_**
+
+- **Batchoverflow**: because ERC20 did not enforce SafeMath, it was possible to underflow integers. As we learned in [lvl 5](https://medium.com/coinmonks/ethernaut-lvl-5-walkthrough-how-to-abuse-arithmetic-underflows-and-overflows-2c614fa86b74), this meant that depleting your tokens under 0 would give you `2^256 - 1` tokens!
+- **Transfer “bug”**: makers of ERC20 intended for developers to use `approve()` & `transferFrom()` function combination to move tokens around. But this was never clearly stated in documentation, nor did they warn against using `transfer()` (which was also available). Many developers used `transfer()` instead, which locked many tokens forever.
+  - As we learned in [lvl 9](https://medium.com/coinmonks/ethernaut-lvl-9-king-walkthrough-how-bad-contracts-can-abuse-withdrawals-db12754f359b), you can’t guarantee 3rd contracts will receive your transfer. If you transfer tokens into non-receiving parties, you will lose tokens forever, since the token contract already decremented your own account’s balance.
+- **Poor ERC20 inheritance**: some token contracts did not properly implement the ERC interface, which led to many issues. For example, Golem’s GNT didn’t even implement the crucial `approve()` function, leaving `transfer()` as the only, problematic option.
+  - _\***hint**\*_ likewise, this level didn’t implement some key functions — leaving Naughtcoin vulnerable to attack.
+
+**_Key Security Takeaways_**
+
+- **When interfacing with contracts or implementing an ERC interface, implement all available functions.**
+- If you plan to create your own tokens, consider newer protocols like: ERC223, ERC721 (used by Cryptokitties), ERC827 (ERC 20 killer).
+- If you can, check for [EIP 165 compliance](https://github.com/ethereum/EIPs/pull/881), which confirms which interface an external contract is implementing. Conversely, if you are the one issuing tokens, remember to be EIP-165 compliant.
+- Remember to use SafeMath to prevent token under/overflows (as we learned in [lvl 5](https://medium.com/coinmonks/ethernaut-lvl-5-walkthrough-how-to-abuse-arithmetic-underflows-and-overflows-2c614fa86b74))
+
 ### Level 16. Preservation
 
 **Goal**: `player` has to claim the ownership of `Preservation`.
