@@ -1058,11 +1058,169 @@ It can't get much more complicated than what was exposed in this level. For more
 
 ### Level 13. Gatekeeper One
 
+**Goal**: `player` has to pass all require checks and set entrant to player address.
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import '@openzeppelin/contracts/math/SafeMath.sol';
+
+contract GatekeeperOne {
+
+  using SafeMath for uint256;
+  address public entrant;
+
+  modifier gateOne() {
+    require(msg.sender != tx.origin);
+    _;
+  }
+
+  modifier gateTwo() {
+    require(gasleft().mod(8191) == 0);
+    _;
+  }
+
+  modifier gateThree(bytes8 _gateKey) {
+      require(uint32(uint64(_gateKey)) == uint16(uint64(_gateKey)), "GatekeeperOne: invalid gateThree part one");
+      require(uint32(uint64(_gateKey)) != uint64(_gateKey), "GatekeeperOne: invalid gateThree part two");
+      require(uint32(uint64(_gateKey)) == uint16(tx.origin), "GatekeeperOne: invalid gateThree part three");
+    _;
+  }
+
+  function enter(bytes8 _gateKey) public gateOne gateTwo gateThree(_gateKey) returns (bool) {
+    entrant = tx.origin;
+    return true;
+  }
+}
+```
+
+Useful links:
+
+- [gasleft](https://docs.soliditylang.org/en/v0.8.3/units-and-global-variables.html#block-and-transaction-properties) function
+- Solidity [opcode](https://medium.com/@blockchain101/solidity-bytecode-and-opcode-basics-672e9b1a88c2) basics
+- [Explicit Conversion](https://docs.soliditylang.org/en/v0.8.3/types.html#explicit-conversions) between types
+
 ### Level 14. Gatekeeper Two
 
 ### Level 15. Naught Coin
 
 ### Level 16. Preservation
+
+**Goal**: `player` has to claim the ownership of `Preservation`.
+
+Given contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+contract Preservation {
+
+  // public library contracts
+  address public timeZone1Library;
+  address public timeZone2Library;
+  address public owner;
+  uint storedTime;
+  // Sets the function signature for delegatecall
+  bytes4 constant setTimeSignature = bytes4(keccak256("setTime(uint256)"));
+
+  constructor(address _timeZone1LibraryAddress, address _timeZone2LibraryAddress) public {
+    timeZone1Library = _timeZone1LibraryAddress;
+    timeZone2Library = _timeZone2LibraryAddress;
+    owner = msg.sender;
+  }
+
+  // set the time for timezone 1
+  function setFirstTime(uint _timeStamp) public {
+    timeZone1Library.delegatecall(abi.encodePacked(setTimeSignature, _timeStamp));
+  }
+
+  // set the time for timezone 2
+  function setSecondTime(uint _timeStamp) public {
+    timeZone2Library.delegatecall(abi.encodePacked(setTimeSignature, _timeStamp));
+  }
+}
+
+// Simple library contract to set the time
+contract LibraryContract {
+
+  // stores a timestamp
+  uint storedTime;
+
+  function setTime(uint _time) public {
+    storedTime = _time;
+  }
+}
+```
+
+The vulnerability `Preservation` contract comes from the fact that its storage layout is **NOT** parallel or complementing to that of `LibraryContract` whose method the `Preservation` is calling using `delegatecall`.
+
+Since `delegatecall` is **_context-preserving_** any write would alter the storage of `Preservation`, and **NOT** `LibraryContract`.
+
+The call to `setTime` of `LibraryContract` is supposed to change `storedTime` (slot 3) in `Preservation` but instead it would write to `timeZone1Library` (slot 0). This is because storeTime of `LibraryContract` is at slot 0 and the corresponding slot 0 storage at `Preservation` is `timeZone1Library`.
+
+|        | LibraryContract |      Preservation       |
+| :----: | :-------------: | :---------------------: |
+| Slot 0 |   storedTime    | &larr; timeZone1Library |
+| Slot 1 |        -        |    timeZone2Library     |
+| Slot 2 |        -        |          owner          |
+| Slot 3 |        -        |       storedTime        |
+
+Solution:
+
+This information can be used to alter `timeZone1Library` address to a malicious contract - `HackLibraryContract`. So that calls to `setTime` is executed in a `HackLibraryContract`:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+contract HackLibraryContract {
+    address public timeZone1Library;
+    address public timeZone2Library;
+    address public owner;
+
+    function setTime(uint _time) public {
+        owner = msg.sender;
+    }
+}
+```
+
+Note that storage layout of `HackLibraryContract` is complementing to `Preservation` so that proper state variables are changed in `Preservation` when any storage changes. Moreover, `setTime` contains malicious code that changes ownership to msg.sender (which would the `player`).
+
+First deploy EvilLibraryContract and copy it's address. Then alter the timeZone1Library in Preservation by:
+
+```js
+await contract.setFirstTime(<hack-library-contract-address>)
+```
+
+(a 32 byte `uint` type can accommodate 20 byte `address` value)
+
+Now the `delegatecall` in `setFirstTime` would execute `setTime` of `HackLibraryContract`, instead of `LibraryContract` since `timeZone1Library` is now your malicious contract address.
+
+Call `setFirstTime` with any `uint` param:
+
+```js
+await contract.setFirstTime(1);
+```
+
+As the previous level, `delegate` mentions, the use of `delegatecall` to call libraries can be risky. This is particularly true for contract libraries that have their own state. This example demonstrates why the `library` keyword should be used for building libraries, as it prevents the libraries from storing and accessing state variables.
+
+**_Key Security Takeaways_**
+
+- **Ideally, libraries should not store state.**
+- When creating libraries, use `library`, not `contract`, to ensure libraries will not modify caller storage data when caller uses `delegatecall`.
+- Use higher level function calls to inherit from libraries, especially when you i) don’t need to change contract storage and ii) do not care about gas control.
+
+Useful links:
+
+- Context preserving nature of delegatecall function
+  - `delegatecall` preserves contract context. This means that code that is executed via `delegatecall` will act on the state (i.e., storage) of the calling contract. [Source](https://www.bookstack.cn/read/ethereumbook-en/spilt.6.c2a6b48ca6e1e33c.md)
+  - [DelegateCall: Calling Another Contract Function in Solidity
+    ](https://medium.com/coinmonks/delegatecall-calling-another-contract-function-in-solidity-b579f804178c)
+    - EOA: Externally Owned Account
 
 ### Level 17. Locked
 
