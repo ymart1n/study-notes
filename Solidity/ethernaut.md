@@ -63,7 +63,7 @@ contract Instance {
 }
 ```
 
-### Level 1. [Fallback](https://hackernoon.com/ethernaut-lvl-1-walkthrough-how-to-abuse-the-fallback-function-118057b68b56)
+### Level 1. Fallback
 
 **Goal**: This levels requires you to exploit a poorly implemented fallback function to gain control of someone else’s smart contract.
 
@@ -169,7 +169,7 @@ contract Fallback {
 - Use fallback functions to **check simple conditional requirements**
 - **Think twice** before using fallback functions to change contract ownership, transfer funds, support low-level function calls, and more.
 
-### Level 2. [Fallout](https://0xsage.medium.com/ethernaut-lvl-2-walkthrough-how-simple-developer-errors-become-big-mistakes-b705ff00a62f)
+### Level 2. Fallout
 
 **Goal**: Gain control of someone else’s smart contract.
 
@@ -221,7 +221,7 @@ contract Fallout {
 }
 ```
 
-### Level 3. [Coin Flip](https://dev.to/nvn/ethernaut-hacks-level-3-coin-flip-3o83)
+### Level 3. Coin Flip
 
 **Goal**: This levels requires you to correctly guess the outcome of a coin flip, **ten times in a row.**
 
@@ -391,7 +391,7 @@ contract HackTelephone {
 }
 ```
 
-### Level 5. [Token](https://dev.to/nvn/ethernaut-hacks-level-5-token-2j4o)
+### Level 5. Token
 
 **Goal**: `player` is initially assigned 20 tokens i.e. `balances[player] = 20` and has to somehow get any additional tokens (so that `balances[player] > 20` ).
 
@@ -546,7 +546,7 @@ Then we send a transaction with `signature` as data, so that `fallback` gets cal
 await contract.sendTransaction({ from: player, data: signature });
 ```
 
-### Level 7. [Force](https://dev.to/nvn/ethernaut-hacks-level-7-force-4g2o) (\*\*\*)
+### Level 7. Force (\*\*\*)
 
 In solidity, for a contract to be able to receive ether, the fallback function must be marked **payable**.
 
