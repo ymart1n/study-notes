@@ -4,6 +4,10 @@
 
 The [Ethernaut](https://ethernaut.openzeppelin.com/) is a Web3/Solidity based wargame inspired on [overthewire.org](https://overthewire.org/wargames/), played in the Ethereum Virtual Machine. Each level is a smart contract that needs to be 'hacked'. The game is 100% open source and all levels are contributions made by other players.
 
+<img width="1058" alt="WeChata8e52318016bd83a909b5c9581a24058" src="https://user-images.githubusercontent.com/56213581/184060916-a29a7117-e77b-47a1-888a-23f1f2b20344.png">
+
+![progress](https://user-images.githubusercontent.com/56213581/184060760-bfa4d890-d12e-4167-b22e-c8755c9cdb09.png)
+
 ### Level 0. Hello Ethernaut
 
 ```solidity
