@@ -1,4 +1,4 @@
-# Solidity coding notes
+# Blockchain Notes
 
 ## Including:
 
