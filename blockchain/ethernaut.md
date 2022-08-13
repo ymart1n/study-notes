@@ -3131,4 +3131,4 @@ Having tokens that present a double entry point is a non-trivial pattern that mi
 ## Credits
 
 - [Ethernaut Community Solutions](https://forum.openzeppelin.com/t/ethernaut-community-solutions/561)
-- [Naveen on dev.to](https://dev.to/nvn/series/161104)
+- [Naveen on dev.to](https://dev.to/nvn/series/16194)
