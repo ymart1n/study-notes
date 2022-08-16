@@ -4,7 +4,7 @@
 
 The [Ethernaut](https://ethernaut.openzeppelin.com/) is a Web3/Solidity based wargame inspired on [overthewire.org](https://overthewire.org/wargames/), played in the Ethereum Virtual Machine. Each level is a smart contract that needs to be 'hacked'. The game is 100% open source and all levels are contributions made by other players.
 
-<img width="1058" alt="WeChata8e52318016bd83a909b5c9581a24058" src="https://user-images.githubusercontent.com/56213581/184060916-a29a7117-e77b-47a1-888a-23f1f2b20344.png">
+![](https://user-images.githubusercontent.com/56213581/184060916-a29a7117-e77b-47a1-888a-23f1f2b20344.png)
 
 ![progress](https://user-images.githubusercontent.com/56213581/184060760-bfa4d890-d12e-4167-b22e-c8755c9cdb09.png)
 
@@ -65,13 +65,13 @@ contract Instance {
 
 ### Level 1. Fallback
 
-**Goal**: This levels requires you to exploit a poorly implemented fallback function to gain control of someone else’s smart contract.
+**Goal**: This levels requires you to exploit a poorly implemented fallback function to gain control of someone else's smart contract.
 
 **_What is a Fallback function_**
 
 It is best practice to implement a **simple** Fallback function if you want your smart contract to **_generally_** **receive Ether from other contracts and wallets**.
 
-> The Fallback function enables a smart contract’s inherent ability to act like a wallet.
+> The Fallback function enables a smart contract's inherent ability to act like a wallet.
 
 If I have your wallet address, I can send you Ethers without your permission. In most cases, you might want to enable this ease-of-payment feature for your smart contracts too. This way, other contracts/wallets can send Ether to your contract, without having to know your ABI or specific function names.
 
@@ -105,7 +105,7 @@ This level demonstrates how you open up your contract to abuse, because **anyone
 
 Anyone can call a fallback function by:
 
-1. Calling a **function that doesn’t exist** inside the contract, or
+1. Calling a **function that doesn't exist** inside the contract, or
 2. Calling a function **without passing in required data**, or
 3. Sending **Ether without any data** to the contract
 
@@ -171,7 +171,7 @@ contract Fallback {
 
 ### Level 2. Fallout
 
-**Goal**: Gain control of someone else’s smart contract.
+**Goal**: Gain control of someone else's smart contract.
 
 Notice Fallout() is misspelled as Fal1out(), causing the constructor function to become a public function that you can call anytime.
 
@@ -227,19 +227,19 @@ contract Fallout {
 
 **_How Ethereum generate "randomness"_**
 
-> There’s no true randomness on Ethereum blockchain, only random generators that are considered “good enough”.
+> There's no true randomness on Ethereum blockchain, only random generators that are considered "good enough".
 
 Developers currently create psuedo-randomness in Ethereum by hashing variables that are **unique**, or **difficult to tamper with**. Examples of such variables include `transaction timestamp`, `sender address`, `block height, etc`.
 
 Ethereum then offers two main cryptographic hashing functions, namely, SHA-3 and the newer KECCAK256, which hash the concatenation string of these input variables.
 
-This generated hash is finally converted into a large integer, and then mod’ed by n. This is to get a discrete set of probability integers, inside the desired range of 0 to n.
+This generated hash is finally converted into a large integer, and then mod'ed by n. This is to get a discrete set of probability integers, inside the desired range of 0 to n.
 
 > Notice that in our Ethernaut exercise, n=2 to represent the two sides of a coin flip.
 > Example of input variables that are often cryptographically hashed
 > ![](https://miro.medium.com/max/1400/1*c7aNl-L0RjDq4EWdDOfaGw.png)
 
-**This method of deriving pseudo-randomness in smart contracts makes them vulnerable to attack. Adversaries who know the input, can thus guess the “random” outcome.**
+**This method of deriving pseudo-randomness in smart contracts makes them vulnerable to attack. Adversaries who know the input, can thus guess the "random" outcome.**
 
 This is the key to solving your CoinFlip level. Here, the input variables that determine the coin flip are publicly available to you.
 
@@ -338,7 +338,7 @@ Useful links:
 
 ### Level 4. Telephone
 
-**Goal**: Gain control of someone else’s smart contract.
+**Goal**: Gain control of someone else's smart contract.
 
 [Difference between tx.origin and msg.sender](https://ethereum.stackexchange.com/questions/1891/whats-the-difference-between-msg-sender-and-tx-origin)
 
@@ -405,7 +405,7 @@ If there is an overflow, the code will revert.
 
 The `transfer` method of `Token` performs some unchecked arithmetic operations on `uint256` (`uint` is shorthand for `uint256` in Solidity) integers. That is prone to underflow.
 
-The max value of a 256 bit unsigned integer can represent is 2<sup>256</sup> − 1, which is -
+The max value of a 256 bit unsigned integer can represent is 2<sup>256</sup> - 1, which is -
 `115,792,089,237,316,195,423,570,985,008,687,907,853,269,984,665,640,564,039,457,584,007,913,129,639,935`
 
 Hence `uint256` can only comprise values from `0` to `2^256 - 1` only. Any addition/subtraction would cause overflow/underflow. For example:
@@ -484,7 +484,7 @@ Useful links:
 
 ### Level 6. Delegation
 
-**Goal**: Gain control of someone else’s smart contract.
+**Goal**: Gain control of someone else's smart contract.
 
 Usage of `delegatecall` is particularly risky and has been used as an attack vector on multiple historic hacks. With it, your contract is practically saying "here, -other contract- or -other library-, do whatever you want with my state". Delegates have complete access to your contract's state. The `delegatecall` function is a powerful feature, but a dangerous one, and must be used with extreme care.
 
@@ -604,7 +604,7 @@ Call `destruct` of Payer with `<instance-address> ` as parameter. That's destroy
 
 It's important to remember that marking a variable as private **_only prevents other contracts from accessing it_**. State variables marked as private and local variables are still publicly accessible.
 
-To ensure that data is private, it needs to be encrypted before being put onto the blockchain. In this scenario, the decryption key should never be sent on-chain, as it will then be visible to anyone who looks for it. [zk-SNARKs](https://blog.ethereum.org/2016/12/05/zksnarks-in-a-nutshell/) (RSA (Rivest–Shamir–Adleman, a public-key cryptosystem) and Zero-Knowledge Proofs) provide a way to determine whether someone possesses a secret parameter, without ever having to reveal the parameter.
+To ensure that data is private, it needs to be encrypted before being put onto the blockchain. In this scenario, the decryption key should never be sent on-chain, as it will then be visible to anyone who looks for it. [zk-SNARKs](https://blog.ethereum.org/2016/12/05/zksnarks-in-a-nutshell/) (RSA (Rivest-Shamir-Adleman, a public-key cryptosystem) and Zero-Knowledge Proofs) provide a way to determine whether someone possesses a secret parameter, without ever having to reveal the parameter.
 
 Given contract:
 
@@ -652,9 +652,9 @@ Useful links:
 
 - [How do I see the value of a string stored in a private variable?](https://ethereum.stackexchange.com/questions/44893/how-do-i-see-the-value-of-a-string-stored-in-a-private-variable)
 - [Solidity - Variables](https://www.tutorialspoint.com/solidity/solidity_variables.htm)
-  - **State Variables** − Variables whose values are permanently stored in a contract storage.
-  - **Local Variables** − Variables whose values are present till function is executing.
-  - **Global Variables** − Special variables exists in the global namespace used to get information about the blockchain.
+  - **State Variables** - Variables whose values are permanently stored in a contract storage.
+  - **Local Variables** - Variables whose values are present till function is executing.
+  - **Global Variables** - Special variables exists in the global namespace used to get information about the blockchain.
 
 ### Level 9. King
 
@@ -861,7 +861,7 @@ The famous DAO hack used reentrancy to extract a huge amount of ether from the v
   ```
 - Include a **mutex** to prevent re-entrancy, e.g. use a boolean **lock** variable to signal execution depth.
 - Be careful when using **function modifiers** to check invariants: modifiers are executed at the start of the function. If the variable state will change during the entirety of the function, consider extracting the modifier into a check placed at the correct line in the function.
-- ❌ “Use `transfer` to move funds out of your contract, since it `throw`s and limits gas forwarded. Low level functions like `call` and `send` just return false but don't interrupt the execution flow when the receiving contract fails.” — from Ethernaut level
+- ❌ "Use `transfer` to move funds out of your contract, since it `throw`s and limits gas forwarded. Low level functions like `call` and `send` just return false but don't interrupt the execution flow when the receiving contract fails." — from Ethernaut level
   - `transfer` and `send` are no longer recommended solutions as they can potentially break contracts after the Istanbul hard fork. [Source 1](https://consensys.net/diligence/blog/2019/09/stop-using-soliditys-transfer-now/) [Source 2](https://forum.openzeppelin.com/t/reentrancy-after-istanbul/1742)
 - Always assume that the receiver of the funds you are sending can be another contract, not just a regular address. Hence, it can execute code in its payable fallback method and _re-enter_ your contract, possibly messing up your state/logic.
 - Re-entrancy is a common attack. You should always be prepared for it!
@@ -975,7 +975,7 @@ Useful links:
 
 Refer to [Level 8](#level-8-vault) about layout of state variables in a Solidity contract and reading storage at a slot.
 
-To solve this level, let’s dive deeper into how Ethereum optimises data storage. But first, make sure you know how to read storage on the blockchain.
+To solve this level, let's dive deeper into how Ethereum optimises data storage. But first, make sure you know how to read storage on the blockchain.
 
 ![](https://miro.medium.com/max/1400/1*wY8Si-mt_QZWqg0jnEDw8A.jpeg)
 ![](https://miro.medium.com/max/1400/1*g3odw8DHxmw0YPrhqDf3oA.jpeg)
@@ -983,7 +983,7 @@ To solve this level, let’s dive deeper into how Ethereum optimises data storag
 
 **Exceptions**:
 
-1. **`constants`** are not stored in storage. From Ethereum [documentation](https://docs.soliditylang.org/en/latest/contracts.html#constants), that the compiler does not reserve a storage slot for `constant` variables. This means you won’t find the following in any storage slots:
+1. **`constants`** are not stored in storage. From Ethereum [documentation](https://docs.soliditylang.org/en/latest/contracts.html#constants), that the compiler does not reserve a storage slot for `constant` variables. This means you won't find the following in any storage slots:
 
 ```solidity
 contract A {
@@ -1059,7 +1059,7 @@ It can't get much more complicated than what was exposed in this level. For more
 **_Key Security Takeaways_**
 
 - In general, excessive slot usage wastes gas, especially if you declared structs that will reproduce many instances. **Remember to optimize your storage to save gas!**
-- Save your variables to `memory` if you don’t need to persist smart contract state. [SSTORE](https://www.ethervm.io/#SSTORE) and [SLOAD](https://www.ethervm.io/#SLOAD) are very gas intensive opcodes.
+- Save your variables to `memory` if you don't need to persist smart contract state. [SSTORE](https://www.ethervm.io/#SSTORE) and [SLOAD](https://www.ethervm.io/#SLOAD) are very gas intensive opcodes.
 - All storage is publicly visible on the blockchain, even your `private` variables!
 - Never store passwords and private keys without hashing them first
 - 1 byte = 8 bits = 2 hex
@@ -1515,10 +1515,10 @@ Contextually, ERC20 was cool in 2015 because it was like an API that all develop
 **_Security issues that accompanied ERC20_**
 
 - **Batchoverflow**: because ERC20 did not enforce SafeMath, it was possible to underflow integers. As we learned in [lvl 5](https://medium.com/coinmonks/ethernaut-lvl-5-walkthrough-how-to-abuse-arithmetic-underflows-and-overflows-2c614fa86b74), this meant that depleting your tokens under 0 would give you `2^256 - 1` tokens!
-- **Transfer “bug”**: makers of ERC20 intended for developers to use `approve()` & `transferFrom()` function combination to move tokens around. But this was never clearly stated in documentation, nor did they warn against using `transfer()` (which was also available). Many developers used `transfer()` instead, which locked many tokens forever.
-  - As we learned in [lvl 9](https://medium.com/coinmonks/ethernaut-lvl-9-king-walkthrough-how-bad-contracts-can-abuse-withdrawals-db12754f359b), you can’t guarantee 3rd contracts will receive your transfer. If you transfer tokens into non-receiving parties, you will lose tokens forever, since the token contract already decremented your own account’s balance.
-- **Poor ERC20 inheritance**: some token contracts did not properly implement the ERC interface, which led to many issues. For example, Golem’s GNT didn’t even implement the crucial `approve()` function, leaving `transfer()` as the only, problematic option.
-  - _\***hint**\*_ likewise, this level didn’t implement some key functions — leaving Naughtcoin vulnerable to attack.
+- **Transfer "bug"**: makers of ERC20 intended for developers to use `approve()` & `transferFrom()` function combination to move tokens around. But this was never clearly stated in documentation, nor did they warn against using `transfer()` (which was also available). Many developers used `transfer()` instead, which locked many tokens forever.
+  - As we learned in [lvl 9](https://medium.com/coinmonks/ethernaut-lvl-9-king-walkthrough-how-bad-contracts-can-abuse-withdrawals-db12754f359b), you can't guarantee 3rd contracts will receive your transfer. If you transfer tokens into non-receiving parties, you will lose tokens forever, since the token contract already decremented your own account's balance.
+- **Poor ERC20 inheritance**: some token contracts did not properly implement the ERC interface, which led to many issues. For example, Golem's GNT didn't even implement the crucial `approve()` function, leaving `transfer()` as the only, problematic option.
+  - _\***hint**\*_ likewise, this level didn't implement some key functions — leaving Naughtcoin vulnerable to attack.
 
 **_Key Security Takeaways_**
 
@@ -1632,7 +1632,7 @@ As the previous level, `delegate` mentions, the use of `delegatecall` to call li
 
 - **Ideally, libraries should not store state.**
 - When creating libraries, use `library`, not `contract`, to ensure libraries will not modify caller storage data when caller uses `delegatecall`.
-- Use higher level function calls to inherit from libraries, especially when you i) don’t need to change contract storage and ii) do not care about gas control.
+- Use higher level function calls to inherit from libraries, especially when you i) don't need to change contract storage and ii) do not care about gas control.
 
 Useful links:
 

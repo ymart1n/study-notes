@@ -2,7 +2,8 @@
   "name": "Lorem Ipsum",
   "sidebar": [
     ["Overview", "/"],
-    ["More", "/more"],
+    ["Scroll Coding Example", "/scrollycoding"],
+    ["Ethernaut Notes", "/ethernaut"],
     ["DeFi Study Docs", "/DeFi"]
   ],
   "experimentalCodehike": true
