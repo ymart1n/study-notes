@@ -11,16 +11,169 @@ uniswap v2 source code analysis
 
 uniswap v3 source code analysis (briefly)
 
+{/* <CH.Scrollycoding> */}
+
+## Step 1
+
+Lorem ipsum dolor sit amet, consectetur adipiscing something about points, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+> Nova in illis at dabat legi harundine non, ova miratur? _Quid in_ sole aer
+> ad diffusa illis voluisti fidensque coniugiale laniata curam. Aras rivus
+> eripuit, qua fistula haec partus; serpens, negat.
+
+Praesent elementum facilisis leo vel fringilla est ullamcorper eget. At imperdiet dui accumsan sit amet nulla facilities morbi tempus.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=3:4,7:9
+pragma solidity =0.5.16;
+
+import './interfaces/IUniswapV2Pair.sol';
+import './UniswapV2ERC20.sol';
+import './libraries/Math.sol';
+import './libraries/UQ112x112.sol';
+import './interfaces/IERC20.sol';
+import './interfaces/IUniswapV2Factory.sol';
+import './interfaces/IUniswapV2Callee.sol';
+
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+```
+
+---
+
+## Step 2
+
+Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in.
+
+Praesent elementum facilisis leo vel fringilla est ullamcorper eget.
+
+Id aliquet risus feugiat in ante metus dictum at tempor. Sed blandit libero volutpat sed cras. Sed odio morbi quis commodo odio aenean sed adipiscing. Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in. Nibh cras pulvinar mattis nunc sed. Luctus accumsan tortor posuere ac ut consequat semper viverra. Fringilla ut morbi tincidunt augue interdum velit euismod.
+
+Morbi quis commodo.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=5:6
+pragma solidity =0.5.16;
+
+import './interfaces/IUniswapV2Pair.sol';
+import './UniswapV2ERC20.sol';
+import './libraries/Math.sol';
+import './libraries/UQ112x112.sol';
+import './interfaces/IERC20.sol';
+import './interfaces/IUniswapV2Factory.sol';
+import './interfaces/IUniswapV2Callee.sol';
+
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+```
+
+---
+
+## Step 3
+
+Id aliquet risus feugiat in ante metus dictum at tempor. Sed blandit libero volutpat sed cras. Sed odio morbi quis commodo odio aenean sed adipiscing. Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu.
+
+- Nisi lacus sed viverra tellus in
+- Nibh cras pulvinar mattis nunc sed
+- Luctus accumsan tortor posuere ac
+
+Ut consequat semper viverra. Fringilla ut morbi tincidunt augue interdum velit euismod.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=11:13
+pragma solidity =0.5.16;
+
+import './interfaces/IUniswapV2Pair.sol';
+import './UniswapV2ERC20.sol';
+import './libraries/Math.sol';
+import './libraries/UQ112x112.sol';
+import './interfaces/IERC20.sol';
+import './interfaces/IUniswapV2Factory.sol';
+import './interfaces/IUniswapV2Callee.sol';
+
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+```
+
+---
+
+## Step 4
+
+Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in. Venenatis cras sed felis eget velit. Consectetur libero id faucibus nisl tincidunt.
+
+Sed blandit libero volutpat sed cras.
+
+- Nisi lacus sed viverra tellus in
+- Nibh cras pulvinar mattis nunc sed
+
+Gravida in fermentum et sollicitudin ac orci phasellus egestas tellus. Volutpat consequat mauris nunc congue nisi vitae.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=9:10,12:13
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+
+    uint public constant MINIMUM_LIQUIDITY = 10**3;
+    bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
+
+    address public factory;
+    address public token0;
+    address public token1;
+
+    uint112 private reserve0;           // uses single storage slot, accessible via getReserves
+    uint112 private reserve1;           // uses single storage slot, accessible via getReserves
+    uint32  private blockTimestampLast; // uses single storage slot, accessible via getReserves
+```
+
+---
+
+## Step 5
+
+Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in.
+
+Praesent elementum facilisis leo vel fringilla est ullamcorper eget.
+
+Id aliquet risus feugiat in ante metus dictum at tempor. Sed blandit libero volutpat sed cras. Sed odio morbi quis commodo odio aenean sed adipiscing. Velit euismod in pellentesque massa placerat.
+
+Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in. Nibh cras pulvinar mattis nunc sed. Luctus accumsan tortor posuere ac ut consequat semper viverra.
+
+- Fringilla ut morbi tincidunt augue interdum velit euismod.
+- Luctus accumsan tortor posuere ac ut consequat semper viverra.
+
+Morbi quis commodo.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=6,14:17
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+
+    uint public constant MINIMUM_LIQUIDITY = 10**3;
+    bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
+
+    address public factory;
+    address public token0;
+    address public token1;
+
+    ...
+
+    function _safeTransfer(address token, address to, uint value) private {
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), 'UniswapV2: TRANSFER_FAILED');
+    }
+```
+
+<!-- </CH.Scrollycoding> -->
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Praesent elementum facilisis leo vel fringilla est ullamcorper eget. At imperdiet dui accumsan sit amet nulla facilities morbi tempus. Praesent elementum facilisis leo vel fringilla. Congue mauris rhoncus aenean vel. Egestas sed tempus urna et pharetra pharetra massa massa ultricies.
+
+Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Praesent elementum facilisis leo vel fringilla est ullamcorper eget. At imperdiet dui accumsan sit amet nulla facilities morbi tempus. Praesent elementum facilisis leo vel fringilla. Congue mauris rhoncus aenean vel. Egestas sed tempus urna et pharetra pharetra massa massa ultricies.
+
+## Credits
+
 https://medium.com/@chiqing/uniswap-v2-explained-beginner-friendly-b5d2cb64fe0f
-
 https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff
-
 https://betterprogramming.pub/uniswap-smart-contract-breakdown-part-2-b9ea2fca65d1
-
 https://coinsbench.com/erc20-smart-contract-breakdown-9dab65cec671
-
 https://ethereum.org/en/developers/tutorials/uniswap-v2-annotated-code/
-
 https://ilamanov.medium.com/difference-between-uniswap-versions-877619a5bce2
-
 https://ilamanov.medium.com/how-uniswap-pools-are-implemented-b50907c7903a
