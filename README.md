@@ -1,2 +1,3 @@
-# Coding Notes
-miscellaneous coding notes
+# Martin's Study Notes
+
+miscellaneous study notes
