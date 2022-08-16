@@ -2,8 +2,8 @@
   "name": "Lorem Ipsum",
   "sidebar": [
     ["Overview", "/"],
-    ["More", "/scrollcoding"],
-    ["DeFi Study Docs", "/blockchain/DeFi"]
+    ["More", "/more"],
+    ["DeFi Study Docs", "/DeFi"]
   ],
   "experimentalCodehike": true
 }
