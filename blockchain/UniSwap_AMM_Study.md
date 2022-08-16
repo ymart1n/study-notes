@@ -11,13 +11,15 @@ uniswap v2 source code analysis
 
 uniswap v3 source code analysis (briefly)
 
-https://ethereum.org/en/developers/tutorials/uniswap-v2-annotated-code/
-
 https://medium.com/@chiqing/uniswap-v2-explained-beginner-friendly-b5d2cb64fe0f
 
 https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff
 
 https://betterprogramming.pub/uniswap-smart-contract-breakdown-part-2-b9ea2fca65d1
+
+https://coinsbench.com/erc20-smart-contract-breakdown-9dab65cec671
+
+https://ethereum.org/en/developers/tutorials/uniswap-v2-annotated-code/
 
 https://ilamanov.medium.com/difference-between-uniswap-versions-877619a5bce2
 
