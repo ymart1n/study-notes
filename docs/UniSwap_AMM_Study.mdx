@@ -1,27 +1,69 @@
-# UniSwap AMM mechanisms
+# Uniswap AMM Study
 
-what's Uniswap and what does it do and what problems does it solve and why is it unique?
+## What is Uniswap?
 
-what's AMM mechanisms and how Uniswap realize it?
+[Uniswap v2](https://uniswap.org/whitepaper.pdf) can create an exchange market between any two ERC-20 tokens. Uniswap is unique since it's an AMM and solve the problems of traditional market of liquidity. In this note, we will go over the source code for the contracts that implement this protocol and see why they are written this way.
 
-uniswap v2 source code analysis
+## What Does Uniswap Do?
 
-- core
-- periphery
+Basically, there are two types of users: **liquidity providers** and **traders**.
 
-uniswap v3 source code analysis (briefly)
+The _liquidity providers_ provide the pool with the two tokens that can be exchanged (we'll call them **Token0** and **Token1**). In return, they receive a third token that represents partial ownership of the pool called a _liquidity token_.
 
-{/* <CH.Scrollycoding> */}
+_Traders_ send one type of token to the pool and receive the other (for example, send **Token0** and receive **Token1**) out of the pool provided by the liquidity providers. The exchange rate is determined by the relative number of **Token0**s and **Token1**s that the pool has. In addition, the pool takes a small percent as a reward for the liquidity pool.
 
-## Step 1
+When liquidity providers want their assets back they can burn the pool tokens and receive back their tokens, including their share of the rewards.
 
-Lorem ipsum dolor sit amet, consectetur adipiscing something about points, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+## What's AMM?
 
-> Nova in illis at dabat legi harundine non, ova miratur? _Quid in_ sole aer
-> ad diffusa illis voluisti fidensque coniugiale laniata curam. Aras rivus
-> eripuit, qua fistula haec partus; serpens, negat.
+Automated market makers (AMMs) allow digital assets to be traded without permission and automatically by using liquidity pools instead of a traditional market of buyers and sellers. On a traditional exchange platform, buyers and sellers offer up different prices for an asset. When other users find a listed price to be acceptable, they execute a trade and that price becomes the asset's market price. Stocks, gold, real estate, and most other assets rely on this traditional market structure for trading. However, AMMs have a different approach to trading assets.
 
-Praesent elementum facilisis leo vel fringilla est ullamcorper eget. At imperdiet dui accumsan sit amet nulla facilities morbi tempus.
+AMMs are a financial tool unique to Ethereum and decentralized finance (DeFi). This new technology is decentralized, always available for trading, and does not rely on the traditional interaction between buyers and sellers. This new method of exchanging assets embodies the ideals of Ethereum, crypto, and blockchain technology in general: no one entity controls the system, and anyone can build new solutions and participate.
+
+**Source**: [What Are Automated Market Makers?](https://www.gemini.com/cryptopedia/amm-what-are-automated-market-makers#section-liquidity-pools-and-liquidity-providers)
+
+## How does Uniswap work?
+
+The whole purpose of Uniswap is to allow you to swap one ERC20 token for another. For example, you need Dogecoin but you only have Shiba coin. Uniswap allows you to sell your Shiba and get Dogecoin in return. This is all done in an automatic and decentralized fashion. Uniswap is just a **decentralized exchange (DEX)**.
+
+Exchanges can be implemented in two ways.
+
+1. **Order book model**: Buyers and sellers file orders. And the centralized system matches the buy orders to the sell orders. This is how the traditional stock exchange works.
+2. **Automated market makers (AMM)**: There is no centralized matchmaker. There are people who provide both tokens (Dogecoin and Shiba). They are called liquidity providers. These liquidity providers create a pool of Dogecoin and Shiba tokens. Now traders can come and deposit Dogecoin and get Shiba in return. This is done automatically, without a centralized entity. Traders pay a small percentage fee for the trade which goes to liquidity providers for their services.
+
+Uniswap uses the AMM technique. How does it determine the exchange rate in a pool? i.e. how many Shiba tokens is 1 Dogecoin worth? This is determined by the constant product formula (Dogecoin amount)\*(Shiba amount)=k. During trades, this product must remain constant.
+
+![](https://miro.medium.com/max/770/1*VcZyp1TBYtZrYi47ozJxRw@2x.png)
+
+Image Source: [Uniswap — A Unique Exchange](https://medium.com/scalar-capital/uniswap-a-unique-exchange-f4ef44f807bf)
+
+**Source**: [How Uniswap works at a high level](https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff)
+
+## Uniswap v2 Source Code Analysis
+
+Uniswap has 4 smart contracts in total. They are divided into **core** and **periphery**.
+
+1. **Core** is for storing the funds (the tokens) and exposing functions for swapping tokens, adding funds, getting rewards, etc.
+2. **Periphery** is for interacting with the **core**.
+
+This division allows the **core** contracts, which hold the assets and therefore **_have_** to be secure, to be simpler and easier to audit. All the extra functionality required by traders can then be provided by **periphery** contracts.
+
+![](https://miro.medium.com/max/770/1*WbCK5HMsPexKYuZxujx1Rg.png)
+
+## Uniswap Functionality
+
+1. **Managing the funds** (how tokens such as Dogecoin and Shiba are managed in the pool)
+2. Functions for **liquidity providers** — deposit more funds and withdraw the funds along with the rewards
+3. Functions for **traders** — swapping
+4. **Managing pool ownership (ERC20) tokens**
+5. **Protocol fee** — Uniswap v2 introduced a switchable protocol fee.
+6. **Price oracle** — Uniswap tracks prices of tokens relative to each other and can be used as a price oracle for other smart contracts in the Ethereum ecosystem.
+
+## Core contracts: Pair
+
+<CH.Scrollycoding>
+
+It imports interfaces that the contract needs to know about, either because the contract implements them (`IUniswapV2Pair` and `UniswapV2ERC20`) or because it calls contracts that implement them.
 
 ```solidity v2-core/contracts/UniswapV2Pair.sol focus=3:4,7:9
 pragma solidity =0.5.16;
@@ -41,15 +83,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
 ---
 
-## Step 2
-
-Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in.
-
-Praesent elementum facilisis leo vel fringilla est ullamcorper eget.
-
-Id aliquet risus feugiat in ante metus dictum at tempor. Sed blandit libero volutpat sed cras. Sed odio morbi quis commodo odio aenean sed adipiscing. Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in. Nibh cras pulvinar mattis nunc sed. Luctus accumsan tortor posuere ac ut consequat semper viverra. Fringilla ut morbi tincidunt augue interdum velit euismod.
-
-Morbi quis commodo.
+It also imports libraries for dealing with math. `SafeMath` is a library for dealing with overflow/underflow. `UQ112x112` is a library for supporting floating numbers. Solidity does not support floats by default. This library represents floats using 224 bits. The First 112 bits are for the whole number, and the last 112 bits are for the fractional part.
 
 ```solidity v2-core/contracts/UniswapV2Pair.sol focus=5:6
 pragma solidity =0.5.16;
@@ -67,46 +101,21 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     using UQ112x112 for uint224;
 ```
 
----
+</CH.Scrollycoding>
 
-## Step 3
+It implements the `IUniswapV2Pair` interface, which is just an interface for this contract. It also extends the `UniswapV2ERC20` contract. This contract inherits from `UniswapV2ERC20`, which provides the the ERC-20 functions for the liquidity tokens.
 
-Id aliquet risus feugiat in ante metus dictum at tempor. Sed blandit libero volutpat sed cras. Sed odio morbi quis commodo odio aenean sed adipiscing. Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu.
-
-- Nisi lacus sed viverra tellus in
-- Nibh cras pulvinar mattis nunc sed
-- Luctus accumsan tortor posuere ac
-
-Ut consequat semper viverra. Fringilla ut morbi tincidunt augue interdum velit euismod.
-
-```solidity v2-core/contracts/UniswapV2Pair.sol focus=11:13
-pragma solidity =0.5.16;
-
-import './interfaces/IUniswapV2Pair.sol';
-import './UniswapV2ERC20.sol';
-import './libraries/Math.sol';
-import './libraries/UQ112x112.sol';
-import './interfaces/IERC20.sol';
-import './interfaces/IUniswapV2Factory.sol';
-import './interfaces/IUniswapV2Callee.sol';
-
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=1
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 ```
 
----
+### Managing the funds
 
-## Step 4
+A Uniswap Pair is an exchange between a pair of tokens such as Dogecoin and Shiba. These tokens are represented as `token0` and `token1` in the contract. They are the addresses of the ERC20 smart contracts that implement them.
 
-Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in. Venenatis cras sed felis eget velit. Consectetur libero id faucibus nisl tincidunt.
-
-Sed blandit libero volutpat sed cras.
-
-- Nisi lacus sed viverra tellus in
-- Nibh cras pulvinar mattis nunc sed
-
-Gravida in fermentum et sollicitudin ac orci phasellus egestas tellus. Volutpat consequat mauris nunc congue nisi vitae.
+`reserve` variables store how much of the token we have in this Pair.
 
 ```solidity v2-core/contracts/UniswapV2Pair.sol focus=9:10,12:13
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
@@ -125,24 +134,13 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     uint32  private blockTimestampLast; // uses single storage slot, accessible via getReserves
 ```
 
----
+![](https://miro.medium.com/max/770/1*j4T8KVmNZhDekIC8O_zNtw.png)
 
-## Step 5
+This is how funds are managed across 3 smart contracts. [Source](https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff)
 
-Velit euismod in pellentesque massa placerat. Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in.
+The Pair contract calls ERC20's functions such as `balanceOf` (with `owner=Pair contract's address`) and `transfer` to manage the tokens (read [Core contracts: ERC20](#core-contracts-erc20) for detailed breakdown of Uniswap ERC20 contract). Here is an example of how ERC20's transfer function is used in the Pair contract.
 
-Praesent elementum facilisis leo vel fringilla est ullamcorper eget.
-
-Id aliquet risus feugiat in ante metus dictum at tempor. Sed blandit libero volutpat sed cras. Sed odio morbi quis commodo odio aenean sed adipiscing. Velit euismod in pellentesque massa placerat.
-
-Mi bibendum neque egestas congue quisque egestas diam in arcu. Nisi lacus sed viverra tellus in. Nibh cras pulvinar mattis nunc sed. Luctus accumsan tortor posuere ac ut consequat semper viverra.
-
-- Fringilla ut morbi tincidunt augue interdum velit euismod.
-- Luctus accumsan tortor posuere ac ut consequat semper viverra.
-
-Morbi quis commodo.
-
-```solidity v2-core/contracts/UniswapV2Pair.sol focus=6,14:17
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=6,14:17 mark=6[64:71] mark=15[79:97]
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     using SafeMath  for uint;
     using UQ112x112 for uint224;
@@ -162,18 +160,285 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     }
 ```
 
-<!-- </CH.Scrollycoding> -->
+The `_update` function below is called whenever there are new funds deposited or withdrawn by the liquidity providers or tokens are swapped by the traders.
+
+All we do in this function is check for overflow (line 3), **update price oracle**, **update reserves**, and update a `Sync` event.
+
+### Update price oracle
+
+Uniswap implements a price oracle that can be used by other smart contracts in the Ethereum ecosystem to query the price of tokens relative to each other.
+
+To implement the price oracle, Uniswap uses only 3 variables: `price0CumulativeLast`, `price1CumulativeLast`, and `blockTimestampLast`.
+
+The relative price can be calculated by subtracting cumulative prices at 2 points in time and dividing by the elapsed time. Check the [Uniswap whitepaper's](https://uniswap.org/whitepaper.pdf) “Price oracle” section for more details.
+
+The variables are updated only once per block here:
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=1,3:4,11:17,20
+uint32 private blockTimestampLast; // uses single storage slot, accessible via getReserves
+
+uint public price0CumulativeLast;
+uint public price1CumulativeLast;
+
+...
+
+// update reserves and, on the first call per block, price accumulators
+function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+    require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+    uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+    uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+    if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+        // * never overflows, and + overflow is desired
+        price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+        price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+    }
+    reserve0 = uint112(balance0);
+    reserve1 = uint112(balance1);
+    blockTimestampLast = blockTimestamp;
+    emit Sync(reserve0, reserve1);
+}
+```
+
+Lines 11-13 calculate whether this is the first time the code is executed in a particular block.
+
+Why do we update values only once per block? Because it's harder that way for someone to manipulate prices in order to gain something. See the “Price oracle” section of the [Uniswap whitepaper](https://uniswap.org/whitepaper.pdf) for more details on these price manipulators.
+
+Each cost accumulator is updated with the latest cost (reserve of the other token/reserve of this token) times the elapsed time in seconds. To get an average price you read the cumulative price is two points in time, and divide by the time difference between them. Let's say we want to calculate the average price of **Token0** between the timestamps 5,030 and 5,150. The difference in the value of `price0Cumulative` is 143.702-29.07=114.632. This is the average across two minutes (120 seconds). So the average price is 114.632/120 = 0.955.
+
+### Update reserves
+
+- `balance0` and `balance1` are the balances of tokens in the ERC20. They are the return value of ERC20's `balanceOf` function.
+- `_reserve0` and `_reserve1` are Uniswap's previously known balances (last time balanceOf was checked).
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=6,11:12
+// update reserves and, on the first call per block, price accumulators
+function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+    require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+    uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+    uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+    if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+        // * never overflows, and + overflow is desired
+        price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+        price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+    }
+    reserve0 = uint112(balance0);
+    reserve1 = uint112(balance1);
+    blockTimestampLast = blockTimestamp;
+    emit Sync(reserve0, reserve1);
+}
+```
+
+What's the difference between the arguments `_reserve0`, `_reserve1` and the stored variables `reserve0`, `reserve1` (shown below)? They are essentially the same. The callers of the `_update` function already have read the `reserve` variables from storage and just pass them as arguments to the `_update` function. This is just a way to save on gas. Reading from storage is more expensive than reading from memory.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=5:6
+address public factory;
+address public token0;
+address public token1;
+
+uint112 private reserve0;           // uses single storage slot, accessible via getReserves
+uint112 private reserve1;           // uses single storage slot, accessible via getReserves
+uint32  private blockTimestampLast; // uses single storage slot, accessible via getReserves
+```
+
+---
+
+### Minting and Burning
+
+Minting is when a liquidity provider adds funds to the pool and as a result, new pool ownership tokens are minted (created out of thin air) for the liquidity provider. Burning is the opposite — liquidity provider withdraws funds (and the accumulated rewards) and his pool ownership tokens are burned (destroyed).
+
+Let's take a look at the `mint` function.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=6:7,11:18
+// this low-level function should be called from a contract which performs important safety checks
+function mint(address to) external lock returns (uint liquidity) {
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    uint balance0 = IERC20(token0).balanceOf(address(this));
+    uint balance1 = IERC20(token1).balanceOf(address(this));
+    uint amount0 = balance0.sub(_reserve0);
+    uint amount1 = balance1.sub(_reserve1);
+
+    bool feeOn = _mintFee(_reserve0, _reserve1);
+    uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+    if (_totalSupply == 0) {
+        liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+        _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
+    } else {
+        liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
+    }
+    require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
+    _mint(to, liquidity);
+
+    _update(balance0, balance1, _reserve0, _reserve1);
+    if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+    emit Mint(msg.sender, amount0, amount1);
+}
+```
+
+- Gas savings: `reserve0`, `reserve1`, and `totalSupply` are transferred from storage to memory (lines 3 and 10) so that it's cheaper to read these values.
+- We read the balances of our contract (the Pair contract) on lines 4 and 5 and then calculate the amount of each token that was deposited.
+- `totalSupply` indicates the total supply of the pool ownership tokens and is a stored variable in the `UniswapV2ERC20` contract. The Pair contract extends `UniswapV2ERC20` which is why it has access to the `totalSupply` variable.
+- If `totalSupply` is 0, it means that this pool is brand new and we need to lock in `MINIMIUM_LIQUIDITY` amount of pool ownership tokens to avoid division by zero in the liquidity calculations. The way it's locked in is by sending it to the address zero. (no one knows the private key that will lead to the address zero so by sending funds to the address zero, you essentially lock the funds forever).
+- **`liquidity` variable is the amount of new pool ownership tokens that need to be minted to the liquidity provider.** The liquidity provider gets a proportional amount of pool ownership tokens depending on how much new funds he provides (line 15)
+- We finally mint new pool ownership tokens to the `to` address (line 18). `to` is the address of the liquidity provider (this will be provided by the Periphery contract called the Router which calls the `mint` function)
+
+**The way adding funds works is**: funds are deposited to the ERC20 contracts (by calling transfer(from: liquidity provider's address, to: Pair contract's address, amount) for each token). Then the Pair contract will read the balances (lines 4 and 5) and compare them to the last known balances (lines 6 and 7). This is how the Pair contract can calculate the amounts deposited.
+
+The `burn` function is just the mirror image of the `mint` function:
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=6:8,11:17
+// this low-level function should be called from a contract which performs important safety checks
+function burn(address to) external lock returns (uint amount0, uint amount1) {
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    address _token0 = token0;                                // gas savings
+    address _token1 = token1;                                // gas savings
+    uint balance0 = IERC20(_token0).balanceOf(address(this));
+    uint balance1 = IERC20(_token1).balanceOf(address(this));
+    uint liquidity = balanceOf[address(this)];
+
+    bool feeOn = _mintFee(_reserve0, _reserve1);
+    uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+    amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
+    amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
+    require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
+    _burn(address(this), liquidity);
+    _safeTransfer(_token0, to, amount0);
+    _safeTransfer(_token1, to, amount1);
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
+
+    _update(balance0, balance1, _reserve0, _reserve1);
+    if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+    emit Burn(msg.sender, amount0, amount1, to);
+}
+```
+
+- `balance0` and `balance1` are total balances of the tokens in this pool. `liquidity` is the amount of pool ownership tokens that the liquidity provider (who wishes to cash out) has. Why do access the liquidity as the balance of `address(this)`? Because the liquidity was transferred to the Pair contract by the Periphery contract before calling the `burn` function.
+- We calculate the amounts of tokens to withdraw to the liquidity provider proportionally to how much liquidity (pool ownership tokens) they have (lines 12 and 13)
+- We then burn their liquidity and transfer the tokens to them.
+- Rewards to the liquidity provider are automatically withdrawn along with their funds. The math makes sure that rewards are accumulated properly and that you get more than you deposited.
+
+---
+
+### Swapping
+
+The `swap` function is used by traders to swap tokens:
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=2:5,12,13:15,19:21,23:25,28:29
+// this low-level function should be called from a contract which performs important safety checks
+function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+    require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
+
+    uint balance0;
+    uint balance1;
+    { // scope for _token{0,1}, avoids stack too deep errors
+    address _token0 = token0;
+    address _token1 = token1;
+    require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO');
+    if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+    if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+    if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
+    }
+    uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+    uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+    require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
+    { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
+    uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
+    uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+    require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
+    }
+
+    _update(balance0, balance1, _reserve0, _reserve1);
+    emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+}
+```
+
+- First, we have a bunch of assertions
+- Then on lines 13 and 14, **we transfer tokens out (to the trader) optimistically** (without making sure that the trader has already transferred corresponding tokens into our balance. We can optimistically transfer tokens out because we have assertions later in the function to check if we received corresponding tokens (the Periphery contract should send us the tokens before calling us for the swap). If we have not, assertions will fail and Solidity will revert the entire function.
+- Line 15 will inform the receiver about the swap if requested.
+- Then on lines 19 and 20 we actually check how many tokens we received. We assert that we received >0 amount for at least one token on line 21. If this assertion fails, the entire function will revert and nothing will have taken place.
+- Then, on lines 23 and 24, we subtract the trading fee (0.3%) from the balance, and on line 25 check if the k value (x\*y=k) has decreased after the trade. The k value can never decrease because otherwise, Uniswap would lose from the swap.
+- Finally, we update our known reserves with the new balances and emit a `Swap` event.
+
+---
+
+### Fees and Rewards
+
+Uniswap works by taking a small percentage (0.3%) fee from the traders on each trade. It then later (optionally) takes some of those fees (1/6th) to itself and distributes the rest to the liquidity providers in proportion to how much the liquidity provider contributed to the pool.
+
+Where are these fees/rewards stored? They are actually stored right in the pool itself.
+
+When traders pay their fee, this fee is added to the pool. Later when liquidity providers either add or withdraw funds, the liquidity provider's rewards are calculated using complicated math formulas.
+
+Instead of creating a separate pool/storage for the fees/rewards, they just add everything to the pool and then use clever math formulas to deduce how much of the pool is from the fees. And Uniswap has an efficient way of keeping track of absolutely the bare minimum to derive these values at any point in the future.
+
+### Pool ownership tokens
+
+When liquidity providers add funds to the pool, they are given pool ownership tokens. After some time, these ownership tokens gain in value due to traders' fees. When the tokens are exchanged back, liquidity providers get more than they deposited.
+
+The pool ownership tokens are implemented as a standard ERC20 token. It's implemented in the UniswapV2ERC20.sol contract of Uniswap (v2-core/contracts/UniswapV2ERC20.sol).
+
+See breakdown of Uniswap's ERC20 contract in a [section below](#core-contracts-erc20)
+
+---
+
+## Core contracts: Factory
+
+---
+
+## Core contracts: ERC20
+
+- meta transaction
+  https://coinsbench.com/erc20-smart-contract-breakdown-9dab65cec671
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Praesent elementum facilisis leo vel fringilla est ullamcorper eget. At imperdiet dui accumsan sit amet nulla facilities morbi tempus. Praesent elementum facilisis leo vel fringilla. Congue mauris rhoncus aenean vel. Egestas sed tempus urna et pharetra pharetra massa massa ultricies.
 
 Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Praesent elementum facilisis leo vel fringilla est ullamcorper eget. At imperdiet dui accumsan sit amet nulla facilities morbi tempus. Praesent elementum facilisis leo vel fringilla. Congue mauris rhoncus aenean vel. Egestas sed tempus urna et pharetra pharetra massa massa ultricies.
 
-## Credits
-
-https://medium.com/@chiqing/uniswap-v2-explained-beginner-friendly-b5d2cb64fe0f
 https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff
 https://betterprogramming.pub/uniswap-smart-contract-breakdown-part-2-b9ea2fca65d1
-https://coinsbench.com/erc20-smart-contract-breakdown-9dab65cec671
 https://ethereum.org/en/developers/tutorials/uniswap-v2-annotated-code/
 https://ilamanov.medium.com/difference-between-uniswap-versions-877619a5bce2
+https://ilamanov.medium.com/how-uniswap-pools-are-implemented-b50907c7903a
+
+- core
+  - ...
+  - how protocol fee is calculated (math formula proof in whitepaper)
+  - how price oracle work (read in whitepaper)
+- periphery
+  - https://ethereum.org/en/developers/tutorials/uniswap-v2-annotated-code/#periphery-contracts
+
+b 站视频源码分析 + v2 key features
+
+uniswap v3 source code analysis (briefly)
+
+- https://youtu.be/WCLsIcjLSXc
+
+---
+
+## Periphery contract: Router
+
+---
+
+## Credits
+
+[Solidity - Events](https://www.tutorialspoint.com/solidity/solidity_events.htm)
+
+[Solidity by Example - Events](https://solidity-by-example.org/events/)
+
+https://medium.com/@chiqing/uniswap-v2-explained-beginner-friendly-b5d2cb64fe0f
+
+https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff
+
+https://betterprogramming.pub/uniswap-smart-contract-breakdown-part-2-b9ea2fca65d1
+
+https://coinsbench.com/erc20-smart-contract-breakdown-9dab65cec671
+
+https://ethereum.org/en/developers/tutorials/uniswap-v2-annotated-code/
+
+https://ilamanov.medium.com/difference-between-uniswap-versions-877619a5bce2
+
 https://ilamanov.medium.com/how-uniswap-pools-are-implemented-b50907c7903a
