@@ -138,7 +138,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
 This is how funds are managed across 3 smart contracts. [Source](https://betterprogramming.pub/uniswap-smart-contract-breakdown-ea20edf1a0ff)
 
-The Pair contract calls ERC20's functions such as `balanceOf` (with `owner=Pair contract's address`) and `transfer` to manage the tokens (read [Core contracts: ERC20](#core-contracts-erc20) for detailed breakdown of Uniswap ERC20 contract). Here is an example of how ERC20's transfer function is used in the Pair contract.
+The Pair contract calls ERC20's functions such as `balanceOf` (with `owner=Pair contract's address`) and `transfer` to manage the tokens (read [Core contracts: ERC20](/UniSwap_AMM_Study#core-contracts-erc20) for detailed breakdown of Uniswap ERC20 contract). Here is an example of how ERC20's transfer function is used in the Pair contract.
 
 ```solidity v2-core/contracts/UniswapV2Pair.sol focus=6,14:17 mark=6[64:71] mark=15[79:97]
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
@@ -381,7 +381,7 @@ When liquidity providers add funds to the pool, they are given pool ownership to
 
 The pool ownership tokens are implemented as a standard ERC20 token. It's implemented in the UniswapV2ERC20.sol contract of Uniswap (v2-core/contracts/UniswapV2ERC20.sol).
 
-See breakdown of Uniswap's ERC20 contract in a [section below](#core-contracts-erc20)
+See breakdown of Uniswap's ERC20 contract in a [section below](/UniSwap_AMM_Study#core-contracts-erc20)
 
 ---
 
