@@ -363,6 +363,10 @@ function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data)
 - Then, on lines 23 and 24, we subtract the trading fee (0.3%) from the balance, and on line 25 check if the k value (x\*y=k) has decreased after the trade. The k value can never decrease because otherwise, Uniswap would lose from the swap.
 - Finally, we update our known reserves with the new balances and emit a `Swap` event.
 
+Note:
+
+- [Stack Too Deep Error](https://medium.com/coinmonks/stack-too-deep-error-in-solidity-608d1bd6a1ea)
+
 ---
 
 ### Fees and Rewards
@@ -383,9 +387,230 @@ The pool ownership tokens are implemented as a standard ERC20 token. It's implem
 
 See breakdown of Uniswap's ERC20 contract in a [section below](/UniSwap_AMM_Study#core-contracts-erc20)
 
+The Pair contract gets access to the ERC20 implementation by extending it:
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=5[43:56]
+import './UniswapV2ERC20.sol';
+
+...
+
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+```
+
+That way the Pair contract gets access to ERC20's `_mint` and `_burn` functions:
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=13,18
+// this low-level function should be called from a contract which performs important safety checks
+function mint(address to) external lock returns (uint liquidity) {
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    uint balance0 = IERC20(token0).balanceOf(address(this));
+    uint balance1 = IERC20(token1).balanceOf(address(this));
+    uint amount0 = balance0.sub(_reserve0);
+    uint amount1 = balance1.sub(_reserve1);
+
+    bool feeOn = _mintFee(_reserve0, _reserve1);
+    uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+    if (_totalSupply == 0) {
+        liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+        _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
+    } else {
+        liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
+    }
+    require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
+    _mint(to, liquidity);
+
+    _update(balance0, balance1, _reserve0, _reserve1);
+    if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+    emit Mint(msg.sender, amount0, amount1);
+}
+```
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=15
+// this low-level function should be called from a contract which performs important safety checks
+function burn(address to) external lock returns (uint amount0, uint amount1) {
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    address _token0 = token0;                                // gas savings
+    address _token1 = token1;                                // gas savings
+    uint balance0 = IERC20(_token0).balanceOf(address(this));
+    uint balance1 = IERC20(_token1).balanceOf(address(this));
+    uint liquidity = balanceOf[address(this)];
+
+    bool feeOn = _mintFee(_reserve0, _reserve1);
+    uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+    amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
+    amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
+    require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
+    _burn(address(this), liquidity);
+    _safeTransfer(_token0, to, amount0);
+    _safeTransfer(_token1, to, amount1);
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
+
+    _update(balance0, balance1, _reserve0, _reserve1);
+    if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+    emit Burn(msg.sender, amount0, amount1, to);
+}
+```
+
+---
+
+### Protocol fee
+
+Uniswap v2 introduced a switchable protocol fee — a fee that can be turned on/off by Uniswap which goes to Uniswap for maintaining the service. It's equal to 1/6th of the fees paid by the traders. Let's examine how the protocol fee is handled in the Pair contract.
+
+The main function of the protocol fee is `_mintFee`:
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=3:4,6,14
+// if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
+    address feeTo = IUniswapV2Factory(factory).feeTo();
+    feeOn = feeTo != address(0);
+    uint _kLast = kLast; // gas savings
+    if (feeOn) {
+        if (_kLast != 0) {
+            uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
+            uint rootKLast = Math.sqrt(_kLast);
+            if (rootK > rootKLast) {
+                uint numerator = totalSupply.mul(rootK.sub(rootKLast));
+                uint denominator = rootK.mul(5).add(rootKLast);
+                uint liquidity = numerator / denominator;
+                if (liquidity > 0) _mint(feeTo, liquidity);
+            }
+        }
+    } else if (_kLast != 0) {
+        kLast = 0;
+    }
+}
+```
+
+- We first get the `feeTo` address from the `factory`. `factory` is the contract that created this Pair contract.
+- If it's set to something other than address zero, that means the protocol fee is on. `feeTo` address indicated the address where the protocol fee should be sent to.
+- If the fee is on, we mint some liquidity to the `feeTo` address. (`_mint` function is the ERC20's `_mint` function)
+
+The rest of the code is for calculating `liquidity`. Liquidity here indicates the amount of new pool ownership tokens that need to be minted to the `feeTo` address. This is how Uniswap implements the protocol fees: it just mints new pool ownership tokens to itself. That, in effect, dilutes everyone else in the pool (the liquidity providers).
+
+`_mintFee` is not the best name for this function because it has a side effect of minting new liquidity. A better name would be `_collectProtocolFee`.
+
+### How protocol fee is calculated
+
+A straightforward way to implement the protocol fee would be to take 1/6th of the traders' fee every time there is a swap of tokens. But as you probably noticed, Uniswap does not like the easy way out. It absolutely loves efficiency and gas savings even if it means the code becomes 10x more complicated.
+
+Uniswap does not calculate fees on every trade because that would incur extra gas on every single swap trade. Since there are lots and lots of trades happening every day, that would sum up to large amounts of gas cost. Uniswap instead calculates the protocol fee only when funds are either deposited or withdrawn from the pool by the liquidity providers. This is a much rarer event than the trades.
+
+So the `_mintFee` function is called only from the `mint` and `burn` functions.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=9
+// this low-level function should be called from a contract which performs important safety checks
+function mint(address to) external lock returns (uint liquidity) {
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    uint balance0 = IERC20(token0).balanceOf(address(this));
+    uint balance1 = IERC20(token1).balanceOf(address(this));
+    uint amount0 = balance0.sub(_reserve0);
+    uint amount1 = balance1.sub(_reserve1);
+
+    bool feeOn = _mintFee(_reserve0, _reserve1);
+    uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+```
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=10
+// this low-level function should be called from a contract which performs important safety checks
+function burn(address to) external lock returns (uint amount0, uint amount1) {
+    (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+    address _token0 = token0;                                // gas savings
+    address _token1 = token1;                                // gas savings
+    uint balance0 = IERC20(_token0).balanceOf(address(this));
+    uint balance1 = IERC20(_token1).balanceOf(address(this));
+    uint liquidity = balanceOf[address(this)];
+
+    bool feeOn = _mintFee(_reserve0, _reserve1);
+    uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+```
+
+Protocol fee is accumulated during trades into the pool so the pool becomes a mix of the exchange tokens, protocol fees, and rewards for liquidity providers. Clever math formulas allow us to calculate how much of each constituent there is.
+
+The protocol fee, in particular, is calculated using a complicated formula which you can find the detailed math proof in the [Uniswap V2 whitepaper](https://uniswap.org/whitepaper.pdf):
+
+![](https://miro.medium.com/max/1400/1*d5laZOk4QnKTcRRnyceXNg@2x.png)
+
+The k value here is the product of the reserves (k=x\*y). This is why we keep track of the `kLast` value throughout the code: `kLast` value allows us to calculate the total accumulated protocol fee (from every trade) so far and collect all this fee in one go either in mint or burn functions.
+
+---
+
+### Pair Contract Misc.
+
+A liquidity event is when funds are either added or withdrawn by the liquidity providers.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol focus=3 mark=3[84:98]
+uint public price0CumulativeLast;
+uint public price1CumulativeLast;
+uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
+
+uint private unlocked = 1;
+```
+
+`lock` is for guarding against [reentrancy abuse](https://medium.com/coinmonks/ethernaut-lvl-10-re-entrancy-walkthrough-how-to-abuse-execution-ordering-and-reproduce-the-dao-7ec88b912c14). Essentially this function modifier prevents 2 different parts of this contract to be executed simultaneously. It kinda makes the contract execute with a single thread. Learn more about [Modifiers](https://medium.com/coinmonks/solidity-tutorial-all-about-modifiers-a86cf81c14cb) in Solidity.
+
+```solidity v2-core/contracts/UniswapV2Pair.sol
+uint private unlocked = 1;
+modifier lock() {
+    require(unlocked == 1, 'UniswapV2: LOCKED');
+    unlocked = 0;
+    _;
+    unlocked = 1;
+}
+```
+
+`skim` and `sync` are needed when balances on the ERC20 contracts of the exchange tokens, fall out of sync with the `reserve` variables in the Pair contract. This can happen for example when someone just transfers some Dogecoin to Pair contract's account for no reason. There are 2 solutions to keep reserve variables in sync with the actual balances on ERC20 contracts:
+
+- `skim` allows someone to withdraw the extra funds from the ERC20 contract. Anyone can call this function!
+- `sync` updates the `reserve` variables to match the balances.
+
+---
+
+### A note on the market dynamics
+
+Uniswap prices tokens according to the proportion of them in the pool. The greater disbalance of them in the pool the greater the price difference (in favor of the rarer token).
+
+But how does Uniswap make sure that the relative price of tokens in the pool matches the market rate? **Arbitrage**. Uniswap takes advantage of arbitrage to ensure the prices in the pool closely track the market prices.
+
+Arbitrage is when a smart investor sees a discrepancy between the market rate and Uniswap exchange rate, he will use it to make a profit and as a result, bring the Unsiwap rate closer to the market rate.
+
+For example, if Uniswap offered a lower Dogecoin-to-Shiba price compared to the market rate, a smart investor would exchange his Shiba for Dogecoin on Uniswap and sell the Dogecoin at a higher price in the market. He will have made a profit and as a result, brought the Unsiwap rate closer to the market rate because he decreased the supply of Dogecoin and increased the supply of Shiba in the Uniswap pool (Dogecoin-to-Shiba price will increase because of how Uniswap price tokens relative to each other).
+
+This will continue until the Uniswap rate matches the market rate. Thus Uniswap rate tends to closely track the market rate and that's why it can be used as an on-chain price oracle.
+
+- As [Uniswap v2 whitepaper](https://uniswap.org/whitepaper.pdf) put it: The first liquidity provider to join a pool sets the initial exchange rate by depositing what they believe to be an equivalent value of ETH and ERC20 tokens. If this ratio is off, arbitrage traders will bring the prices to equilibrium at the expense of the initial liquidity provider.
+- And [Uniswap v1 whitepaper](https://hackmd.io/@HaydenAdams/HJ9jLsfTz?type=view) put it: Large trades cause price slippage as well, but arbitrage will ensure that the price will not shift too far from that of other exchanges.
+
+---
+
+### Pair Contract Summary
+
+The Pair contract is a mix of a bunch of functionality:
+
+- Managing funds
+- Adding/removing liquidity
+- Swapping tokens
+- Managing fees/rewards
+- Calculating the protocol fee
+- Implementing a price oracle
+
+Fully annotated code for the Pair contract:
+
+![](https://miro.medium.com/max/1400/1*kwkPAf-V8tGcCyTc7mD95A.png)
+
 ---
 
 ## Core contracts: Factory
+
+![](https://miro.medium.com/max/1400/1*E1dBWKjmKzGiyuohaZU25Q@2x.png)
+
+The Factory contract is referenced throughout the Pair contract:
+
+![](https://miro.medium.com/max/1400/1*ITIXOfTmqfRTpS8StkD-tA@2x.png)
+![](https://miro.medium.com/max/1400/1*i_xvaGlzFIH7d4p8jFTD2A@2x.png)
 
 ---
 
@@ -420,6 +645,15 @@ uniswap v3 source code analysis (briefly)
 ---
 
 ## Periphery contract: Router
+
+The Periphery contract is the API for Uniswap. You could call the Core contracts directly but that's more complicated (periphery provides wrapper functions) and more dangerous (you could lose money if you're not careful).
+
+Core contracts have checks to make sure they aren't cheated on. But they don't provide checks for anybody else. Those checks are in the periphery. So if you don't want to lose money, use the periphery contract to interact with Uniswap.
+
+![](https://miro.medium.com/max/1400/1*CcfWX3ZW3sVpbi3HquPe5g@2x.png)
+
+- This contract has a bunch of similar functions for adding liquidity, removing liquidity, and swapping tokens. Different variants of functions are for different trading/liquidity preferences.
+- I removed the body of most functions because they are pretty similar.
 
 ---
 
