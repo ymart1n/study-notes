@@ -1,0 +1,37 @@
+# Sushiswap and Liquidity Mining (LP Mining)
+
+Sushiswap is the Uniswap fork brought new features like staking and governance to the exchange.
+
+## Uniswap v2
+
+At its core SushiSwap is just a Uniswap v2 fork. The contract code was copied 1:1 except for a few small differences. If you are curious about how Uniswap v2 works, check out my previous note [here](https://docs.page/ymart1n/study-notes/UniSwap_AMM_Study).
+
+In particular SushiSwap is making use of liquidity pool tokens (LP tokens). Essentially LPs are for receiving [pro-rata](https://www.investopedia.com/terms/p/pro-rata.asp) fees accrued in the pool. So you provide liquidity in a pool and get LP tokens minted in return. When the pool is now collecting fees over time, they are evenly distributed to all LP holders at the time of the trade. When you burn your LP tokens, you will receive your share of the pool + the collected fees.
+
+Two changes to the Uniswap code where made by SushiSwap:
+
+1. The function [setFeeTo](https://github.com/sushiswap/sushiswap/blob/64b758156da6f9bde1d8619f142946b005c1ba4a/contracts/uniswapv2/UniswapV2Factory.sol#L47-L50) was called in the deployment and the fee recipient was set to the SushiMaker contract (see below). Once the fee recipient is set, 1/6th of the LP supply growth due to the current trade are minted as protocol fee in the form of pool tokens. Since the trade fee on Uniswap is 0.3%, this will result in a 0.05% fee of every trade going towards the SushiMaker.
+2. A migrator functionality was added (see SushiRoll below).
+
+## SushiMaker
+
+The [SushiMaker](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiMaker.sol) will receive LP tokens from people trading on SushiSwap. It mostly consists of a convert function which does the following:
+
+1. [Burn](https://github.com/Uniswap/uniswap-v2-core/blob/4dd59067c76dea4a0e8e4bfdda41877a6b16dedc/contracts/UniswapV2Pair.sol#L134) the LP tokens for the provided token pair. The result will be receiving proportional amounts of both `token0` and `token1`.
+2. Inside `convertStep` trade both received tokens into SUSHI. This may require additional steps if there's no direct pool to trade into SUSHI.
+
+---
+
+https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiRoll.sol
+
+https://github.com/sushiswap/sushi-docs
+
+https://docs.sushi.com/docs/Developers/Sushiswap/SushiMaker
+
+based on uniswap v2 lp token design, DeFi protocols mostly use lp mining as an incentive to attract liquidity on the market. https://github.com/sushiswap/sushiswap MasterChef.sol is a good starting point
+
+https://soliditydeveloper.com/sushi-swap
+
+https://sushichef.medium.com/the-sushiswap-project-dd6eb80c6ba2
+
+https://beincrypto.com/learn/how-to-use-sushiswap/

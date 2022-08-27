@@ -2,12 +2,11 @@
   "name": "Martin's Study Notes",
   "sidebar": [
     ["Overview", "/"],
-    ["Scroll Coding Example", "/scrollycoding"],
+    ["Uniswap AMM Study", "/UniSwap_AMM_Study"],
+    ["Sushiswap Study", "/Sushiswap_Study"],
+    ["Blockchain", "/Blockchain"],
     ["Ethernaut Notes", "/ethernaut"],
     ["DeFi Study Docs", "/DeFi"],
-    ["Uniswap AMM Study", "/UniSwap_AMM_Study"],
-    ["Blockchain", "/Blockchain"],
-    ["Liquidity Mining", "/Liquidity_Mining"],
     ["Smart Contract Practice", "/Smart_Contract_Practice"]
   ],
   "experimentalCodehike": true
