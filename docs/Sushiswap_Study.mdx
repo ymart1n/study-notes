@@ -2,6 +2,8 @@
 
 Sushiswap is the Uniswap fork brought new features like staking and governance to the exchange.
 
+![](https://miro.medium.com/max/1400/1*-Q1jqx2A4mWAd4Z8rGCNgQ.png)
+
 ## Uniswap v2
 
 At its core SushiSwap is just a Uniswap v2 fork. The contract code was copied 1:1 except for a few small differences. If you are curious about how Uniswap v2 works, check out my previous note [here](https://docs.page/ymart1n/study-notes/UniSwap_AMM_Study).
@@ -15,10 +17,74 @@ Two changes to the Uniswap code where made by SushiSwap:
 
 ## SushiMaker
 
-The [SushiMaker](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiMaker.sol) will receive LP tokens from people trading on SushiSwap. It mostly consists of a convert function which does the following:
+The [SushiMaker](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiMaker.sol) will receive LP tokens from people trading on SushiSwap. It mostly consists of a `convert` function which does the following:
 
 1. [Burn](https://github.com/Uniswap/uniswap-v2-core/blob/4dd59067c76dea4a0e8e4bfdda41877a6b16dedc/contracts/UniswapV2Pair.sol#L134) the LP tokens for the provided token pair. The result will be receiving proportional amounts of both `token0` and `token1`.
 2. Inside `convertStep` trade both received tokens into SUSHI. This may require additional steps if there's no direct pool to trade into SUSHI.
+
+```solidity SushiMaker.sol
+// simplified version
+function convert(address token0, address token1) external {
+  UniV2Pair pair = UniV2Pair(factory.getPair(token0, token1));
+  require(address(pair) != address(0), "Invalid pair");
+
+  IERC20(address(pair)).safeTransfer(
+      address(pair),
+      pair.balanceOf(address(this))
+  );
+
+  (uint256 amount0, uint256 amount1) = pair.burn(address(this));
+
+  if (token0 != pair.token0()) {
+      (amount0, amount1) = (amount1, amount0);
+  }
+
+  _convertStep(token0, token1, amount0, amount1)
+}
+```
+
+The swap itself is performed on the SushiSwap pools itself. Let's see how this is done by examining the `_swap` function. For the trade we are using the low-level [Uniswap swap](https://github.com/Uniswap/v2-core/blob/4dd59067c76dea4a0e8e4bfdda41877a6b16dedc/contracts/UniswapV2Pair.sol#L159) function.
+
+1. Get the current reserves of both tokens in the pool.
+2. Compute the receiving amount from the reserves and token amount being swapped minus the fees. Calculation is based on the x \* y = k curve.
+
+```solidity SushiMaker.sol
+  function _swap(
+      address fromToken,
+      address toToken,
+      uint256 amountIn,
+      address to
+  ) internal returns (uint256 amountOut) {
+      IUniswapV2Pair pair =
+          IUniswapV2Pair(factory.getPair(fromToken, toToken));
+      require(address(pair) != address(0), "SushiMaker: Cannot convert");
+
+      (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
+      uint256 amountInWithFee = amountIn.mul(997);
+      if (fromToken == pair.token0()) {
+          amountOut =
+              amountInWithFee.mul(reserve1) /
+              reserve0.mul(1000).add(amountInWithFee);
+          IERC20(fromToken).safeTransfer(address(pair), amountIn);
+          pair.swap(0, amountOut, to, new bytes(0));
+      } else {
+          amountOut =
+              amountInWithFee.mul(reserve0) /
+              reserve1.mul(1000).add(amountInWithFee);
+          IERC20(fromToken).safeTransfer(address(pair), amountIn);
+          pair.swap(amountOut, 0, to, new bytes(0));
+      }
+  }
+}
+```
+
+Once the amount out is computed, we can perform the swap. The last step to convert into SUSHI will always call the `_swap` function by passing the SUSHI token address and sending it to the bar:
+
+```solidity
+_swap(token, sushi, amountIn, bar)
+```
+
+That's it, now we converted all LP tokens into SUSHI. All converted SUSHI are sent to the SushiBar, see next contract.
 
 ---
 
