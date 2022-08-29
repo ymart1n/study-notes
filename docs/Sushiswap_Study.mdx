@@ -88,16 +88,294 @@ That's it, now we converted all LP tokens into SUSHI. All converted SUSHI are se
 
 ---
 
-https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiRoll.sol
+## SushiBar
 
-https://github.com/sushiswap/sushi-docs
+Inside the [SushiBar](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiBar.sol) people can enter with SUSHI, receive xSUSHI and later leave with even more SUSHI. Remember that all SUSHI from the SushiMaker are sent here. So over time the bar will accumulate more and more SUSHI.
 
-https://docs.sushi.com/docs/Developers/Sushiswap/SushiMaker
+Who will receive this SUSHI?
 
-based on uniswap v2 lp token design, DeFi protocols mostly use lp mining as an incentive to attract liquidity on the market. https://github.com/sushiswap/sushiswap MasterChef.sol is a good starting point
+Anyone who entered the bar. For entering a user receives xSUSHI which are kind of like the LP tokens for Uniswap. They represent ownership of the SUSHI token in the bar.
 
-https://soliditydeveloper.com/sushi-swap
+The amount of xSUSHI you receive is your transferred SUSHI \* total xSUSHI supply / current balance of SUSHI. So if you send 10 SUSHI to the bar which already has 100 SUSHI in it and 200 xSUSHI total supply, you will receive 10 \* 200 / 100 = 20 xSUSHI.
 
-https://sushichef.medium.com/the-sushiswap-project-dd6eb80c6ba2
+```solidity SushiBar.sol
+// Enter the bar. Pay some SUSHIs. Earn some shares.
+// Locks Sushi and mints xSushi
+function enter(uint256 _amount) public {
+    // Gets the amount of Sushi locked in the contract
+    uint256 totalSushi = sushi.balanceOf(address(this));
+    // Gets the amount of xSushi in existence
+    uint256 totalShares = totalSupply();
+    // If no xSushi exists, mint it 1:1 to the amount put in
+    if (totalShares == 0 || totalSushi == 0) {
+        _mint(msg.sender, _amount);
+    }
+    // Calculate and mint the amount of xSushi the Sushi is worth. The ratio will change overtime, as xSushi is burned/minted and Sushi deposited + gained from fees / withdrawn.
+    else {
+        uint256 what = _amount.mul(totalShares).div(totalSushi);
+        _mint(msg.sender, what);
+    }
+    // Lock the Sushi in the contract
+    sushi.transferFrom(msg.sender, address(this), _amount);
+}
+```
 
-https://beincrypto.com/learn/how-to-use-sushiswap/
+The above function can be simplified to the following:
+
+```solidity
+function enter(uint256 _amount) external {
+    uint256 totalSushi = sushi.balanceOf(address(this));
+    uint256 totalShares = totalSupply();
+
+    uint256 mintAmount =
+        totalShares == 0 || totalSushi == 0
+        ? _amount
+        : _amount.mul(totalShares).div(totalSushi);
+
+    _mint(msg.sender, mintAmount);
+    sushi.transferFrom(
+      msg.sender,
+      address(this),
+      _amount
+    );
+}
+```
+
+Now when you leave again, you get your equal share of SUSHI back. This will be at the minimum what you paid in, but considering the bar will accumulate SUSHI over time, it should be more than what you put originally in.
+
+The amount of SUSHI you receive is your transferred xSUSHI \* current balance of SUSHI / total xSUSHI supply. So if you send 20 xSUSHI to the bar which has 100 SUSHI in it and 200 xSUSHI total supply, you will receive 20 \* 100 / 200 = 10 SUSHI.
+
+```solidity SushiBar.sol
+// Leave the bar. Claim back your SUSHIs.
+// Unlocks the staked + gained Sushi and burns xSushi
+function leave(uint256 _share) public {
+    // Gets the amount of xSushi in existence
+    uint256 totalShares = totalSupply();
+    // Calculates the amount of Sushi the xSushi is worth
+    uint256 what = _share
+        .mul(sushi.balanceOf(address(this)))
+        .div(totalShares);
+    _burn(msg.sender, _share);
+    sushi.transfer(msg.sender, what);
+}
+```
+
+---
+
+## SushiToken
+
+Of course you have the [SUSHI token contract](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiToken.sol) itself. There's nothing special to it other than being a regular ERC-20 with delegation functionality identical to the [COMP token](https://soliditydeveloper.com/comp-governance). The mentioned [Timelock](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/governance/Timelock.sol) contract is also included in SushiSwap.
+
+The token allows delegating your voting power to some other trusted address. This address can then vote with increased power. Any time you may choose to re-delegate somewhere else.
+
+---
+
+## SushiRoll (Migrator)
+
+In the [SushiRoll](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiRoll.sol) contract a migrator is provided, so people can easily move liquidity from Uniswap to SushiSwap.
+
+With the migrate function, you essentially
+
+1. Remove liquidity from Uniswap.
+2. Add liquidity in SushiSwap.
+
+Any potential leftover tokens from the token pair will be returned to the user.
+
+```solidity SushiRoll.sol
+function removeLiquidity(
+    address tokenA,
+    address tokenB,
+    uint256 liquidity,
+    uint256 amountAMin,
+    uint256 amountBMin,
+    uint256 deadline
+) internal returns (uint256 amountA, uint256 amountB) {
+    IUniswapV2Pair pair = IUniswapV2Pair(pairForOldRouter(tokenA, tokenB));
+    pair.transferFrom(msg.sender, address(pair), liquidity);
+    (uint256 amount0, uint256 amount1) = pair.burn(address(this));
+    (address token0,) = UniswapV2Library.sortTokens(tokenA, tokenB);
+    (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
+    require(amountA >= amountAMin, 'SushiRoll: INSUFFICIENT_A_AMOUNT');
+    require(amountB >= amountBMin, 'SushiRoll: INSUFFICIENT_B_AMOUNT');
+}
+
+function addLiquidity(
+    address tokenA,
+    address tokenB,
+    uint256 amountADesired,
+    uint256 amountBDesired
+) internal returns (uint amountA, uint amountB) {
+    (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired);
+    address pair = UniswapV2Library.pairFor(router.factory(), tokenA, tokenB);
+    IERC20(tokenA).safeTransfer(pair, amountA);
+    IERC20(tokenB).safeTransfer(pair, amountB);
+    IUniswapV2Pair(pair).mint(msg.sender);
+}
+
+// msg.sender should have approved 'liquidity' amount of LP token of 'tokenA' and 'tokenB'
+function migrate(
+    address tokenA,
+    address tokenB,
+    uint256 liquidity,
+    uint256 amountAMin,
+    uint256 amountBMin,
+    uint256 deadline
+) public {
+    require(deadline >= block.timestamp, 'SushiSwap: EXPIRED');
+
+    // Remove liquidity from the old router with permit
+    (uint256 amountA, uint256 amountB) = removeLiquidity(
+        tokenA,
+        tokenB,
+        liquidity,
+        amountAMin,
+        amountBMin,
+        deadline
+    );
+
+    // Add liquidity to the new router
+    (uint256 pooledAmountA, uint256 pooledAmountB) = addLiquidity(tokenA, tokenB, amountA, amountB);
+
+    // Send remaining tokens to msg.sender
+    if (amountA > pooledAmountA) {
+        IERC20(tokenA).safeTransfer(msg.sender, amountA - pooledAmountA);
+    }
+    if (amountB > pooledAmountB) {
+        IERC20(tokenB).safeTransfer(msg.sender, amountB - pooledAmountB);
+    }
+}
+```
+
+As you can see in the `removeLiquidity` and `addLiquidity` method above, Solidity function can have an [optional return statement](https://www.tutorialspoint.com/solidity/solidity_functions.htm).
+
+---
+
+## MasterChef
+
+The [MasterChef](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/MasterChefV2.sol) enables the minting of new SUSHI token. It's the only way that SUSHI tokens are created. This is possible by staking LP tokens inside the MasterChef. The MasterChef is controlled by the owner which originally used to be Chef Nomi, but is since controlled by a 9 person [multi-sig wallet](https://blog.bitstamp.net/post/what-is-a-multisig-wallet/).
+
+Eventually the plan is to move control of the MasterChef to governance. The owner has the power to control the allocations points from pools. What this means is the higher the allocation points of a liquidity pool, the more SUSHI one receives for staking its LP tokens. In the future this might create powerful control to create incentives for participating in special liquidity pools.
+
+The owner can control pool allocations via the `add` function:
+
+```solidity MasterChefV2.sol
+/// @notice Add a new LP to the pool. Can only be called by the owner.
+/// DO NOT add the same LP token more than once. Rewards will be messed up if you do.
+/// @param allocPoint AP of the new pool.
+/// @param _lpToken Address of the LP ERC-20 token.
+/// @param _rewarder Address of the rewarder delegate.
+function add(uint256 allocPoint, IERC20 _lpToken, IRewarder _rewarder) public onlyOwner {
+    uint256 lastRewardBlock = block.number;
+    totalAllocPoint = totalAllocPoint.add(allocPoint);
+    lpToken.push(_lpToken);
+    rewarder.push(_rewarder);
+
+    poolInfo.push(PoolInfo({
+        allocPoint: allocPoint.to64(),
+        lastRewardBlock: lastRewardBlock.to64(),
+        accSushiPerShare: 0
+    }));
+    emit LogPoolAddition(lpToken.length.sub(1), allocPoint, _lpToken, _rewarder);
+}
+```
+
+### updatePool
+
+Ongoing pools can be updated and then mint SUSHI to the people staking the LP tokens using `updatePool`.
+
+The newly minted SUSHI amount per pool depends on the passed blocks since the last update and the set allocation points for the pool. (plus some extra multiplier left out for simplicity in the example on the right)
+
+The calculated sushiReward is then distributed in 10% towards the dev address and the other 90% towards the pool LP stakers.
+
+```solidity MasterChefV2.sol
+/// @notice Update reward variables of the given pool.
+/// @param pid The index of the pool. See `poolInfo`.
+/// @return pool Returns the pool that was updated.
+function updatePool(uint256 pid) public returns (PoolInfo memory pool) {
+    pool = poolInfo[pid];
+    if (block.number > pool.lastRewardBlock) {
+        uint256 lpSupply = lpToken[pid].balanceOf(address(this));
+        if (lpSupply > 0) {
+            uint256 blocks = block.number.sub(pool.lastRewardBlock);
+            uint256 sushiReward = blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
+            pool.accSushiPerShare = pool.accSushiPerShare.add((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
+        }
+        pool.lastRewardBlock = block.number.to64();
+        poolInfo[pid] = pool;
+        emit LogUpdatePool(pid, pool.lastRewardBlock, lpSupply, pool.accSushiPerShare);
+    }
+}
+```
+
+### deposit
+
+Using the deposit function users can stake their LP tokens for the provided pool. This will put the user's LP token into the MasterChef contract.
+
+```solidity MasterChefV2.sol
+/// @notice Deposit LP tokens to MCV2 for SUSHI allocation.
+/// @param pid The index of the pool. See `poolInfo`.
+/// @param amount LP token amount to deposit.
+/// @param to The receiver of `amount` deposit benefit.
+function deposit(uint256 pid, uint256 amount, address to) public {
+    PoolInfo memory pool = updatePool(pid);
+    UserInfo storage user = userInfo[pid][to];
+
+    // Effects
+    user.amount = user.amount.add(amount);
+    user.rewardDebt = user.rewardDebt.add(int256(amount.mul(pool.accSushiPerShare) / ACC_SUSHI_PRECISION));
+
+    // Interactions
+    IRewarder _rewarder = rewarder[pid];
+    if (address(_rewarder) != address(0)) {
+        _rewarder.onSushiReward(pid, to, to, 0, user.amount);
+    }
+
+    lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
+
+    emit Deposit(msg.sender, pid, amount, to);
+}
+```
+
+### withdraw
+
+Using the withdraw function users can unstake their LP tokens for the provided pool. In return they will
+
+1. Receive their original LP tokens
+2. Get their share of newly minted SUSHI tokens
+
+```solidity MasterChefV2.sol
+/// @notice Withdraw LP tokens from MCV2.
+/// @param pid The index of the pool. See `poolInfo`.
+/// @param amount LP token amount to withdraw.
+/// @param to Receiver of the LP tokens.
+function withdraw(uint256 pid, uint256 amount, address to) public {
+    PoolInfo memory pool = updatePool(pid);
+    UserInfo storage user = userInfo[pid][msg.sender];
+
+    // Effects
+    user.rewardDebt = user.rewardDebt.sub(int256(amount.mul(pool.accSushiPerShare) / ACC_SUSHI_PRECISION));
+    user.amount = user.amount.sub(amount);
+
+    // Interactions
+    IRewarder _rewarder = rewarder[pid];
+    if (address(_rewarder) != address(0)) {
+        _rewarder.onSushiReward(pid, msg.sender, to, 0, user.amount);
+    }
+
+    lpToken[pid].safeTransfer(to, amount);
+
+    emit Withdraw(msg.sender, pid, amount, to);
+}
+```
+
+---
+
+## Resources
+
+[SushiSwap Explained!](https://soliditydeveloper.com/sushi-swap)
+
+[The SushiSwap Project](https://sushichef.medium.com/the-sushiswap-project-dd6eb80c6ba2)
+
+[Sushiswap Archive Docs](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiRoll.sol)
+
+[Sushiswap Docs](https://github.com/sushiswap/sushi-docs)
