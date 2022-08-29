@@ -43,6 +43,78 @@ function convert(address token0, address token1) external {
 }
 ```
 
+```solidity SushiMaker.sol
+function _convertStep(
+    address token0,
+    address token1,
+    uint256 amount0,
+    uint256 amount1
+) internal returns (uint256 sushiOut) {
+    // Interactions
+    if (token0 == token1) {
+        uint256 amount = amount0.add(amount1);
+        if (token0 == sushi) {
+            IERC20(sushi).safeTransfer(bar, amount);
+            sushiOut = amount;
+        } else if (token0 == weth) {
+            sushiOut = _toSUSHI(weth, amount);
+        } else {
+            address bridge = bridgeFor(token0);
+            amount = _swap(token0, bridge, amount, address(this));
+            sushiOut = _convertStep(bridge, bridge, amount, 0);
+        }
+    } else if (token0 == sushi) {
+        // eg. SUSHI - ETH
+        IERC20(sushi).safeTransfer(bar, amount0);
+        sushiOut = _toSUSHI(token1, amount1).add(amount0);
+    } else if (token1 == sushi) {
+        // eg. USDT - SUSHI
+        IERC20(sushi).safeTransfer(bar, amount1);
+        sushiOut = _toSUSHI(token0, amount0).add(amount1);
+    } else if (token0 == weth) {
+        // eg. ETH - USDC
+        sushiOut = _toSUSHI(
+            weth,
+            _swap(token1, weth, amount1, address(this)).add(amount0)
+        );
+    } else if (token1 == weth) {
+        // eg. USDT - ETH
+        sushiOut = _toSUSHI(
+            weth,
+            _swap(token0, weth, amount0, address(this)).add(amount1)
+        );
+    } else {
+        // eg. MIC - USDT
+        address bridge0 = bridgeFor(token0);
+        address bridge1 = bridgeFor(token1);
+        if (bridge0 == token1) {
+            // eg. MIC - USDT - and bridgeFor(MIC) = USDT
+            sushiOut = _convertStep(
+                bridge0,
+                token1,
+                _swap(token0, bridge0, amount0, address(this)),
+                amount1
+            );
+        } else if (bridge1 == token0) {
+            // eg. WBTC - DSD - and bridgeFor(DSD) = WBTC
+            sushiOut = _convertStep(
+                token0,
+                bridge1,
+                amount0,
+                _swap(token1, bridge1, amount1, address(this))
+            );
+        } else {
+            sushiOut = _convertStep(
+                bridge0,
+                bridge1, // eg. USDT - DSD - and bridgeFor(DSD) = WBTC
+                _swap(token0, bridge0, amount0, address(this)),
+                _swap(token1, bridge1, amount1, address(this))
+            );
+        }
+    }
+}
+```
+
 The swap itself is performed on the SushiSwap pools itself. Let's see how this is done by examining the `_swap` function. For the trade we are using the low-level [Uniswap swap](https://github.com/Uniswap/v2-core/blob/4dd59067c76dea4a0e8e4bfdda41877a6b16dedc/contracts/UniswapV2Pair.sol#L159) function.
 
 1. Get the current reserves of both tokens in the pool.
@@ -367,6 +439,32 @@ function withdraw(uint256 pid, uint256 amount, address to) public {
     emit Withdraw(msg.sender, pid, amount, to);
 }
 ```
+
+---
+
+## MiniChef
+
+The [MiniChef contract](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/MiniChefV2.sol) plays the same role as the MasterChef contract does, with the main exception being that they are deployed across L2's, whereas MasterChef is deployed on the Ethereum mainnet. Check out the docs [here](https://docs.sushi.com/docs/Developers/Sushiswap/MiniChef).
+
+---
+
+## SushiMakerKashi
+
+[SushiMakerKashi](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/SushiMakerKashi.sol) handles "serving up" rewards for xSUSHI holders by trading tokens collected from Kashi fees for SUSHI. Check out the docs [here](https://docs.sushi.com/docs/Developers/Sushiswap/SushiMakerKashi).
+
+### What is Kashi?
+
+Kashi is a lending and margin trading platform, built on the BentoBox, that allows for anyone to create customized and gas-efficient markets for lending, borrowing, and collateralizing a variety of DeFi tokens, stable coins, and synthetic assets. Kashi's broad diversity of tokens is supported through the use of a unique isolated market framework. Unlike traditional DeFi money markets where high-risk assets can introduce risk to the entire protocol, in Kashi each market is entirely separate (similar to the SushiSwap DEX), meaning the risk of assets within one lending market has no effect over the risk of another lending market.
+
+Traditional lending projects have permitted users to add liquidity into a pool-based system. In these systems, if one of the assets were to drop in price faster than liquidators could react, every user and every asset would be negatively impacted. In this sense, the total risk of pool-based platforms is determined largely by the riskiest asset listed on the platform. This risk increases with every extra asset that is added, leading to a very limited choice in assets on most platforms. Kashi's unique design enables a new kind of lending and borrowing. The ability to isolate risks into individual lending markets means that Kashi can permit users to add any token.
+
+In addition, isolating the risks of the different lending markets enables users to achieve leverage in one click, without ever leaving the platform. In the past, users seeking leverage on an asset through direct lending and borrowing would have had to borrow on one platform in order to lend on another, and repeat. Because Kashi separates markets into pairs, lending and borrowing into the same market are composable, which means that Kashi can automate leverage in a single click.
+
+---
+
+## BentoBox
+
+The [BentoBox](https://github.com/sushiswap/sushiswap/blob/archieve/canary/contracts/bentobox/BentoBoxV1.sol) is a vault for tokens. The stored tokens can be flashloaned or used in strategies - the yield from this will go to the token depositors.
 
 ---
 
