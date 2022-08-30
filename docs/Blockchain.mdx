@@ -1,4 +1,83 @@
-# Consensus algorithm and How blockchain works
+# Blockchain & Consensus Mechanism
+
+## Blockchain
+
+### What is a blockchain?
+
+A blockchain is a distributed database or ledger that is shared among the nodes of a computer network. As a database, a blockchain stores information electronically in digital format. Blockchains are best known for their crucial role in cryptocurrency systems, such as Bitcoin, for maintaining a secure and decentralized record of transactions. The innovation with a blockchain is that it guarantees the fidelity and security of a record of data and generates trust without the need for a trusted third party.
+
+One key difference between a typical database and a blockchain is how the data is structured. A blockchain collects information together in groups, known as [blocks](https://www.investopedia.com/terms/b/block-bitcoin-block.asp), that hold sets of information. Blocks have certain storage capacities and, when filled, are closed and linked to the previously filled block, forming a chain of data known as the blockchain. All new information that follows that freshly added block is compiled into a newly formed block that will then also be added to the chain once filled.
+
+A database usually structures its data into tables, whereas a blockchain, as its name implies, structures its data into chunks (blocks) that are strung together. This data structure inherently makes an irreversible timeline of data when implemented in a decentralized nature. When a block is filled, it is set in stone and becomes a part of this timeline. Each block in the chain is given an exact timestamp when it is added to the chain.
+
+> **KEY TAKEAWAYS**
+>
+> - Blockchain is a type of shared database that differs from a typical database in the way that it stores information; blockchains store data in blocks that are then linked together via cryptography.
+> - As new data comes in, it is entered into a fresh block. Once the block is filled with data, it is chained onto the previous block, which makes the data chained together in chronological order.
+> - Different types of information can be stored on a blockchain, but the most common use so far has been as a ledger for transactions.
+> - In Bitcoin's case, blockchain is used in a decentralized way so that no single person or group has control—rather, all users collectively retain control.
+> - Decentralized blockchains are immutable, which means that the data entered is irreversible. For Bitcoin, this means that transactions are permanently recorded and viewable to anyone.
+
+### Block
+
+Blocks are data structures within the blockchain database, where transaction data in a cryptocurrency blockchain are permanently recorded. A block records some or all of the most recent transactions not yet validated by the network. Once the data are validated, the block is closed. Then, a new block is created for new transactions to be entered into and validated.
+
+A block is thus a permanent store of records that, once written, cannot be altered or removed.
+
+> **KEY TAKEAWAYS**
+>
+> - A block is a place in a blockchain where information is stored and encrypted.
+> - Blocks are identified by long numbers that include encrypted transaction information from previous blocks and new transaction information.
+> - Blocks and the information within them must be verified by a network before new blocks can be created.
+> - Blocks and blockchains are not used solely by cryptocurrencies. They also have many other uses.
+
+A blockchain network witnesses a great deal of transaction activity. When used in cryptocurrency, maintaining a record of these transactions helps the system track how much was or wasn't used and which parties were involved. The transactions made during a given period are recorded into a file called a block, which is the basis of the blockchain network.
+
+A block stores information. There are many pieces of information included within a block, but it doesn't occupy a large amount of storage space. Blocks generally include these elements, but it might vary between different types:
+
+- **Magic number**: A number containing specific values that identify that block as part of a particular cryptocurrency's network.
+- **Blocksize**: Sets the size limit on the block so that only a specific amount of information can be written in it.
+- **Block header**: Contains information about the block.
+- **Transaction counter**: A number that represents how many transactions are stored in the block.
+- **Transactions**: A list of all of the transactions within a block.
+
+The transaction element is the largest because it contains the most information. It is followed in storage size by the block header, which includes these sub-elements:
+
+- **Version**: The cryptocurrency version being used.
+- **Previous block hash**: Contains a hash (encrypted number) of the previous block's header.
+- **Hash Merkle root**: Hash of transactions in the [Merkle tree](https://www.investopedia.com/terms/m/merkle-tree.asp) (binary hash tree) of the current block.
+- _Time_: A timestamp to place the block in the blockchain.
+- **Bits**: The difficulty rating of the target hash, signifying the difficulty in solving the nonce.
+- **Nonce**: The encrypted number that a miner must solve to verify the block and close it.
+
+One 32-bit number in the header is called a nonce—the mining program uses random numbers to "guess" the nonce in the hash. When a nonce is verified, the hash is solved when the nonce, or a number less than it, is guessed. Then, the network closes that block, generates a new one with a header, and the process repeats.
+
+**Mining's Relationship to Blocks**
+
+Mining is the term used for solving the number that is the nonce, the only number that can be changed in a block header. It is also the process the cryptocurrency's network uses if proof-of-work is used in the protocol.
+
+Cryptocurrency mining is commonly thought to be a complex mathematical problem; it is actually a random number generated through hashing. Hashing is the process of encrypting information using the encryption method a cryptocurrency uses. For example, Bitcoin uses SHA256 for its encryption algorithm. For a miner to generate the "winning" number, the mining program must use SHA 256 to hash random numbers and place them into the nonce to see if it is a match.
+
+The difficulty lies in that all previous block headers are encrypted randomly. Hence, the current block header is a randomly generated encrypted number based on the randomly generated encrypted numbers of previous blocks and information from the current block.
+
+### How Does a Blockchain Work?
+
+The goal of blockchain is to allow digital information to be recorded and distributed, but not edited. In this way, a blockchain is the foundation for immutable ledgers, or records of transactions that cannot be altered, deleted, or destroyed. This is why blockchains are also known as a [distributed ledger technology](https://www.investopedia.com/terms/d/distributed-ledger-technology-dlt.asp) (DLT).
+
+First proposed as a research project in 1991, the blockchain concept predated its first widespread application in use: Bitcoin, in 2009. In the years since, the use of blockchains has exploded via the creation of various cryptocurrencies, decentralized finance (DeFi) applications, non-fungible tokens (NFTs), and smart contracts.
+
+**Transaction Process**
+
+![](<https://www.investopedia.com/thmb/DgmKuK6aoY6Jw3P4eox-oMEMvh0=/660x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/dotdash_Final_Blockchain_Sep_2020-01-60f31a638c4944abbcfde92e1a408a30.jpg>)
+
+**_Resource:_**
+
+- [Blockchain Demo](https://gugger.guru/blockchain-demo/)
+- [Blockchain Demo Video 1](https://youtu.be/_160oMzblY8)
+- [Blockchain Demo Video 2](https://youtu.be/xIDL_akeras)
+- [Blockchain Mining Difficulty](http://blog.geveo.com/Blockchain-Mining-Difficulty)
+
+## Consensus Mechanism
 
 ### What Is a Consensus Mechanism?
 
@@ -32,6 +111,76 @@ While PoW and PoS are by far the most prevalent in the blockchain space, there a
 
 Another, called Proof of History (PoH), developed by the Solana Project and similar to [Proof of Elapsed Time (PoET)](https://www.investopedia.com/terms/p/proof-elapsed-time-cryptocurrency.asp), encodes the passage of time itself cryptographically to achieve consensus without expending many resources.
 
+### Proof-of-Work & Mining
+
+Proof of work (PoW) describes a system that requires a not-insignificant but feasible amount of effort in order to deter frivolous or malicious uses of computing power, such as sending spam emails or launching denial of service attacks. The concept was subsequently adapted to securing digital money by Hal Finney in 2004 through the idea of "reusable proof of work" using the SHA-256 hashing algorithm.
+
+Following its introduction in 2009, Bitcoin became the first widely adopted application of Finney's PoW idea (Finney was also the recipient of the first bitcoin transaction). Proof of work forms the basis of many other cryptocurrencies as well, allowing for secure, decentralized consensus.
+
+> **KEY TAKEAWAYS**
+>
+> - Proof of work (PoW) is a decentralized consensus mechanism that requires members of a network to expend effort solving an arbitrary mathematical puzzle to prevent anybody from gaming the system.
+> - Proof of work is used widely in cryptocurrency mining, for validating transactions and mining new tokens.
+> - Due to proof of work, Bitcoin and other cryptocurrency transactions can be processed peer-to-peer in a secure manner without the need for a trusted third party.
+> - Proof of work at scale requires huge amounts of energy, which only increases as more miners join the network.
+> - Proof of Stake (POS) was one of several novel consensus mechanisms created as an alternative to proof of work.
+
+**Understanding Proof of Work**
+
+This explanation will focus on proof of work as it functions in the bitcoin network. Bitcoin is a digital currency that is underpinned by a kind of distributed ledger known as a "blockchain." This ledger contains a record of all bitcoin transactions, arranged in sequential "blocks," so that no user is allowed to spend any of their holdings twice. In order to prevent tampering, the ledger is public, or "distributed"; an altered version would quickly be rejected by other users.
+
+The way that users detect tampering in practice is through hashes, long strings of numbers that serve as proof of work. Put a given set of data through a hash function (bitcoin uses SHA-256), and it will only ever generate one hash. Due to the "avalanche effect," however, even a tiny change to any portion of the original data will result in a totally unrecognizable hash. Whatever the size of the original data set, the hash generated by a given function will be the same length. The hash is a one-way function: it cannot be used to obtain the original data, only to check that the data that generated the hash matches the original data.
+
+Generating just any hash for a set of bitcoin transactions would be trivial for a modern computer, so in order to turn the process into "work," the bitcoin network sets a certain level of "difficulty." This setting is adjusted so that a new block is "mined"—added to the blockchain by generating a valid hash—approximately every 10 minutes. Setting difficulty is accomplished by establishing a "target" for the hash: the lower the target, the smaller the set of valid hashes, and the harder it is to generate one. In practice, this means a hash that starts with a very long string of zeros.
+
+> **FAST FACT**
+>
+> Proof of work was initially created as a proposed solution to the growing problem of spam email.
+
+**Special Considerations**
+
+Since a given set of data can only generate one hash, how do miners make sure they generate a hash below the target? They alter the input by adding an integer, called a nonce ("number used once"). Once a valid hash is found, it is broadcast to the network, and the block is added to the blockchain.
+
+Mining is a competitive process, but it is more of a lottery than a race. On average, someone will generate acceptable proof of work every ten minutes, but who it will be is anyone's guess. Miners pool together to increase their chances of mining blocks, which generates transaction fees and, for a limited time, a reward of newly-created bitcoins.
+
+Proof of work makes it extremely difficult to alter any aspect of the blockchain, since such an alteration would require re-mining all subsequent blocks. It also makes it difficult for a user or pool of users to monopolize the network's computing power, since the machinery and power required to complete the hash functions are expensive.
+
+> **Important**
+>
+> If part of a mining network begins accepting an alternative proof of work, it is known as a [hard fork](https://www.investopedia.com/terms/h/hard-fork.asp).
+
+[**What happens if two miners mine the next block at the same time?**](https://bitcoin.stackexchange.com/questions/8172/what-happens-if-two-miners-mine-the-next-block-at-the-same-time)
+
+In Bitcoin terms, simultaneous answers occur frequently, but at the end of the day, there can only be one winning answer. When multiple simultaneous answers are presented that are equal to or less than the target number, the Bitcoin network will decide by a simple majority—51%—which miner to honor.
+
+Typically, it is the miner who has done the most work or, in other words, the one that verifies the most transactions. The losing block then becomes an "[orphan block](https://www.investopedia.com/terms/o/orphan-block-cryptocurrency.asp)." Orphan blocks are those that are not added to the blockchain. Miners who successfully solve the hash problem but haven't verified the most transactions are not rewarded with bitcoin.
+
+**Source**: [How Does Bitcoin Mining Work?](https://www.investopedia.com/tech/how-does-bitcoin-mining-work/)
+
+[**What is a 51% Attack**](https://www.investopedia.com/terms/1/51-attack.asp)
+
+A 51% attack is an attack on a cryptocurrency blockchain by a group of miners who control more than 50% of the network's mining hash rate. Owning 51% of the nodes on the network gives the controlling parties the power to alter the blockchain. This group then introduces an altered blockchain to the network at a very specific point in the blockchain, which is theoretically accepted by the network because the attackers would own most of it.
+
+The attackers would be able to prevent new transactions from gaining confirmations, allowing them to halt payments between some or all users. They would also be able to reverse transactions that were completed while they were in control of the network. Reversing transactions could allow them to double-spend coins, one of the issues consensus mechanisms like proof-of-work were created to prevent.
+
+> **KEY TAKEAWAYS**
+>
+> - Blockchains are distributed ledgers that record every transaction made on a cryptocurrency's network.
+> - A 51% attack is an attack on a blockchain by a group of miners who control more than 50% of the network's mining hash rate.
+> - Attackers with majority network control can interrupt the recording of new blocks by preventing other miners from completing blocks.
+> - Changing historical blocks is difficult due to the hard-coding of past transactions into Bitcoin software.
+> - Although a successful attack on Bitcoin or Ethereum is unlikely, smaller networks are frequent targets for 51% attacks.
+
+Changing historical blocks—transactions locked in before the start of the attack—would be extremely difficult even in the event of a 51% attack. The further back the transactions are, the more difficult it is to change them. It would be impossible to change transactions before a checkpoint, where transactions become hard-coded into Bitcoin's software.
+
+In addition to the costs, a group that attempts to attack the network using a 51% attack must not only control 51% of the network but must also introduce the altered blockchain at a very precise time. Even if they own 51% of the network hashing rate, they still might not be able to keep up with the block creation rate or get their chain inserted before valid new blocks are created by the 'honest' blockchain network.
+
+Again, this is possible on smaller cryptocurrency networks because there is less participation and lower hash rates. Large networks make it nearly impossible to introduce an altered blockchain.
+
+### Proof-of-Stake
+
+[PoS](https://www.investopedia.com/terms/p/proof-stake-pos.asp)
+
 ### Ethereum Consensus Mechanism
 
 https://ethereum.org/en/developers/docs/consensus-mechanisms
@@ -42,7 +191,7 @@ Ethereum, like Bitcoin, currently uses a **proof-of-work (PoW)** consensus proto
 
 **Block creation**
 
-Proof-of-work is done by [miners](https://ethereum.org/en/developers/docs/consensus-mechanisms/pow/mining/), who compete to create new blocks full of processed transactions. The winner shares the new block with the rest of the network and earns some freshly minted ETH. The race is won by the computer which is able to solve a math puzzle fastest – this produces the cryptographic link between the current block and the block that went before. Solving this puzzle is the work in "proof-of-work".
+Proof-of-work is done by [miners](https://ethereum.org/en/developers/docs/consensus-mechanisms/pow/mining/), who compete to create new blocks full of processed transactions. The winner shares the new block with the rest of the network and earns some freshly minted ETH. The race is won by the computer which is able to solve a math puzzle fastest - this produces the cryptographic link between the current block and the block that went before. Solving this puzzle is the work in "proof-of-work".
 
 **Security**
 
@@ -64,10 +213,6 @@ A proof-of-stake system is kept secure by the fact that you'd need 51% of the to
 
 More on [proof-of-stake](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/)
 
-### What is a blockchain?
-
-https://www.investopedia.com/terms/b/blockchain.asp
-
 ## 以太坊發展路線
 
 展开写
@@ -75,4 +220,24 @@ https://www.investopedia.com/terms/b/blockchain.asp
 
 [Why Are Most dApps Built on Ethereum?](https://www.gemini.com/cryptopedia/dapps-ethereum-decentralized-application)
 
+[Ethereum 2.0](https://www.investopedia.com/ethereum-2-0-6455959)
+
 [Layer 2](https://ethereum.org/en/layer-2/)
+
+## Credits
+
+[Blockchain Facts](https://www.investopedia.com/terms/b/blockchain.asp)
+
+[Block (Blockchain Block)](https://www.investopedia.com/terms/b/block-bitcoin-block.asp)
+
+[Consensus Mechanism (Cryptocurrency)](https://www.investopedia.com/terms/c/consensus-mechanism-cryptocurrency.asp)
+
+[How Does Bitcoin Mining Work?](https://www.investopedia.com/tech/how-does-bitcoin-mining-work/)
+
+[The proof of work (PoW)](https://www.investopedia.com/terms/p/proof-work.asp)
+
+[PoS](https://www.investopedia.com/terms/p/proof-stake-pos.asp)
+
+[What is a 51% Attack](https://www.investopedia.com/terms/1/51-attack.asp)
+
+[Ethereum Consensus Mechanism](https://ethereum.org/en/developers/docs/consensus-mechanisms)
