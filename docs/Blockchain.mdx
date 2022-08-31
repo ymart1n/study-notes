@@ -46,7 +46,7 @@ The transaction element is the largest because it contains the most information.
 - **Version**: The cryptocurrency version being used.
 - **Previous block hash**: Contains a hash (encrypted number) of the previous block's header.
 - **Hash Merkle root**: Hash of transactions in the [Merkle tree](https://www.investopedia.com/terms/m/merkle-tree.asp) (binary hash tree) of the current block.
-- _Time_: A timestamp to place the block in the blockchain.
+- **Time**: A timestamp to place the block in the blockchain.
 - **Bits**: The difficulty rating of the target hash, signifying the difficulty in solving the nonce.
 - **Nonce**: The encrypted number that a miner must solve to verify the block and close it.
 
@@ -288,14 +288,93 @@ A proof-of-stake system is kept secure by the fact that you'd need 51% of the to
 
 ## Ethereum Misc. and Ethereum 2.0
 
-展开写
-[Merge, Surge, Verge, Purge, Splurge 到底是什麼？](https://cryptowesearch.com/blog/all/eth-update)
+### Why Are Most dApps Built on Ethereum?
 
-[Why Are Most dApps Built on Ethereum?](https://www.gemini.com/cryptopedia/dapps-ethereum-decentralized-application)
+Decentralized applications (dApps) are built on blockchain networks and use smart contracts to create platforms that streamline and democratize the entry into industries ranging from finance to gaming — all without intermediaries and centralized authorities. In terms of front-end user experience, dApps appear nearly identical to traditional web applications. However, on the back-end, dApps function much differently than their conventional counterparts. Instead of employing the HTTP protocol to communicate with the broader network, dApps connect to the blockchain in a decentralized manner rather than routing through centralized servers.
 
-[Ethereum 2.0](https://www.investopedia.com/ethereum-2-0-6455959)
+The Ethereum network currently dominates dApp development for several reasons. Ethereum implements a development interface that reduces programming time and helps quickly launch projects. Beyond this, the Ethereum developer community has grown remarkably since the platform's launch. And Ethereum retains formidable network effects from its global coalition of technologists who remain committed to maintaining the network and actively developing user resources that drive adoption. Further, the ability to adequately monetize dApp projects incentivizes others to partake in the Ethereum ecosystem.
 
-[Layer 2](https://ethereum.org/en/layer-2/)
+- **The Ethereum Virtual Machine (EVM)**
+  - Ethereum is known for providing a distinct and accommodating developer experience that makes it easier for novice blockchain developers to enter the space. A prime example of this is the Ethereum Virtual Machine (EVM), a unique software system that allows developers to launch any dApp regardless of the underlying coding language. Ethereum also uses a network-native language known as Solidity for coding smart contracts. This network architecture eliminates the need to develop an entirely new blockchain for every dApp.
+  - Developers can work with the ready-made Ethereum system to fast-track onboarding and get their applications up and running sooner than other alternatives. This dynamic continues to drive the rapid development of DeFi products on the Ethereum network. By combining application templates, MetaMask integration, and the EVM, the overall Ethereum development kit allows companies to focus on refining their applications and developing on top of open-source code among a global, mission-based developer community that prioritizes cooperation over competition.
+- **Developer Community and Network**
+  - Since launching in 2015, Ethereum has moved quickly from first mover to legacy status in the decentralized blockchain ecosystem. The network benefits from a highly skilled community of developers who have since built out crucial extension documentation and network updates to help the broader community. For example, Microsoft's Blockchain Development Kit for Ethereum and Diligence's Solidity Visual Auditor extension for Visual Studio code are used to enhance development on the Ethereum network. The increasing number of developers utilizing these solutions has perpetuated the development of better tools, better code, better platforms, and ultimately, better dApps.
+  - Further, dApps like MakerDAO, IDEX, Bancor, and even CryptoKitties serve to amplify this network effect, drawing even greater attention to the Ethereum ecosystem. The function of composability, exemplified by dApps using open source code from other projects and building out token interoperability between platforms, has reinforced the cooperative infrastructure of the network. As a result, Ethereum has become the infrastructure of choice in every single dApp market segment.
+- **Monetizing Ethereum dApps**
+  - Many dApps utilize a native token that facilitates activity within the application — also known as a utility token. On the Ethereum network, these tokens adhere to the ERC-20 tokenization standard, a set of rules that ensure Ethereum-based tokens can interact seamlessly with one another. This component of network architecture is critical to ensuring the continuity of Ethereum-based applications. To generate revenue, dApps can monetize their assets on existing crypto exchanges or launch their own decentralized exchange (DEX).
+  - The ERC-20 standard enables the frictionless exchange of these crypto assets. Further, the increase in trading volume brings more awareness to dApps residing within the Ethereum ecosystem; the network reinvests in itself. A clear path toward monetization results from Ethereum's vast community and robust, interoperable network infrastructure.
+
+### Ethereum 2.0
+
+Five Stages of Ethereum 2.0 Development (All about scaling, security, efficiency, and sustainability)
+
+> Vitalik Buterin:
+>
+> “The Merge is proof of stake. The Surge is sharding, and The Verge is Verkle Trees, The Purge is things like state expiry and deleting old history, and The Splurge is basically just all of the other fun stuff.”
+
+- **The Merge**
+
+  - 現時的以太坊主鏈和 Beacon Chain 將會合併，原本的 PoW (工作量證明) 共識將會轉成 PoS (權益證明)。由於 PoS 的電力消耗會比 PoW 低 99.95%, 消耗的電力比起 PoW 幾乎可以忽略不計, 這對在可持續發展方面有更多考量的企業來說, 以太坊變成了一個可行的選擇, 不會再因為環保問題被垢病。
+  - 在 PoS 機制中，不再需要發行大量新的代幣去補貼礦工，因為發行量的減少，以太坊會有新的加密經濟模型，大部分的 ETH 代幣都會被質押，市場上的供應量會大大減少，令以太幣變成更稀有的硬通貨。
+
+- **The Surge**
+
+  - 將區塊鏈的整個網路分成更小的分區，以後多條分片鏈將能同時進行交易與驗證，提升整個 Ethereum 網絡的效率。The Surge 其實就是以太坊 2.0 一直在強調的分片設計。The Surge 會將區塊鏈的整個網路分成更小的分區，以後多條分片鏈將能同時進行交易與驗證，提升整個網絡的效率。分片是以太幣的擴容方案中最複雜和最難實行的設計，為了確保分片能順利進行，分片會發生較後期的更新階段，給開發者充足的時間開發和測試。最新的分片提案和過往的已經有一些出入，更加以 Rollup 為中心來進行各種優化和升級，例 如在分片的設計方案上會更方便 Rollup 去調用數據。
+  - [**Sharding**](https://ethereum.org/en/upgrades/sharding/) is the process of splitting one blockchain into multiple blockchains known as shards. It makes the entire network more efficient as a single validator does not have to handle the workload alone.
+  - Every validator maintains information related to “their” shard. These validators are also shuffled between shards regularly to avoid any kind of manipulation. The **Beacon Chain** is used for the communication and coordination of the shards.
+  - The Beacon Chain is a ledger of accounts that conducts and coordinates the network of stakers. It isn't quite like the Ethereum Mainnet of today. It does not process transactions or handle smart contract interactions.
+
+- **The Verge**
+
+  - The verge will implement what Buterin calls “[Verkle trees](https://vitalik.ca/general/2021/06/18/verkle.html)” (a type of mathematical proof) and “stateless clients.” These technical upgrades will allow users to become network validators without having to store extensive amounts of data on their machines. In a proof-of-stake network, validators with locked-up or “staked” ETH confirm and verify transactions. In Buterin's view, the verge will be “great for decentralization.”
+  - This upgrade involves a “powerful upgrade to Merkle proofs” which optimizes data storage for Ethereum nodes. It will also assist with Ethereum scaling, as it allows for a greater number of blockchain transactions while keeping the blockchain decentralized.
+  - 在原來區塊鏈的設計中, 如果客戶端想要確認一個交易的狀態, 會需要用到 Merkle Proof, 而在引入 Verkle Tree 後, 因為所佔用的空間將大幅減少, 也令「Stateless Client」的概念變得可行。
+  - 簡單來說 Stateless Clients 就是「不需要儲存所有狀態，卻能參與交易驗證」的角色，現在區塊鏈網絡裏所有的共識和驗證都是由全節點完成的，但有了 Stateless Clients 之後，將不再需要花大量的記憶體儲存相關的數據，令整條區塊鏈更有效率。
+
+- **The Purge**: 通過剔除歷史數據和消除技術債務，驗證者不再需要使用大量硬盤空間去進行驗證工作。
+
+  - “The purge: trying to actually cut down the amount of space you have to have on your hard drive, trying to simplify the Ethereum protocol over time and not requiring nodes to store history,” Buterin said of the phase.
+  - 現時以太坊的驗證者需要下載自 2014 年開始的整個以太坊交易歷史數據，佔用的記憶體空間太大，甚至還隨這時間過去而不斷增加。
+  - The Purge 目的是要改變這一點，減少節點的存儲需求，甚至不需要節點儲存歷史數據，從而大大提高效率，增加 TPS。
+
+- **The Splurge**: 四個不同部分升級後的協調，旨在減少錯誤 (Bugs) 的出現和確保網絡能暢順運作。
+
+### Ethereum Layer 2
+
+Scaling Ethereum without compromising on security or decentralization.
+
+Layer 2 (L2) is a collective term to describe a specific set of Ethereum scaling solutions. **A layer 2 is separate blockchain that extends Ethereum and inherits the security guarantees of Ethereum**.
+
+Now let's dig into it a bit more, and to do this we need to explain layer 1 (L1).
+
+Layer 1 is the base blockchain. Ethereum and Bitcoin are both layer 1 blockchains because they are the **underlying foundation that various layer 2 networks build on top of**. Examples of layer 2 projects include "rollups" on Ethereum and the Lightning Network on top of Bitcoin. All user transaction activity on these layer 2 projects can ultimately settle back to the layer 1 blockchain.
+
+Ethereum also functions as a data availability layer for layer 2s. Layer 2 projects will post their transaction data onto Ethereum, relying on Ethereum for data availability. This data can be used to get the state of the layer 2, or to dispute transactions on layer 2.
+
+**Ethereum as the layer 1 includes**:
+
+1. **A network of node operators** to secure and validate the network
+2. **A network of block producers**
+3. **The blockchain** itself and the history of transaction data
+4. **The consensus mechanism** for the network
+
+**Why do we need layer 2?**
+
+Three desirable properties of a blockchain are that it is **decentralized, secure, and scalable**. The [blockchain trilemma](https://www.ledger.com/academy/what-is-the-blockchain-trilemma) states that a simple blockchain architecture can only achieve two out of three. Want a secure and decentralized blockchain? You need to sacrifice scalability.
+
+Ethereum has reached the network's current capacity with 1+ million transactions per day and high demand for each of these transactions. The success of Ethereum and the demand to use it has caused gas prices to rise substantially. Therefore the need for scaling solutions has increased in demand as well. This is where layer 2 networks come in.
+
+**Scalability**
+
+The main goal of scalability is to increase transaction speed (faster finality) and transaction throughput (higher transactions per second) without sacrificing decentralization or security.
+
+The Ethereum community has taken a strong stance that it would not throw out decentralization or security in order to scale. Until sharding, Ethereum Mainnet (layer 1) is only able to process roughly 15 transactions per second. When demand to use Ethereum is high, the network becomes congested, which increases transaction fees and prices out users who cannot afford those fees. That is where layer 2 comes in to scale Ethereum today.
+
+**Rollups**
+
+Rollups are currently the preferred layer 2 solution for scaling Ethereum. By using rollups, users can reduce gas fees by up to 100x compared to layer 1.
+
+Rollups bundle (or 'roll up') hundreds of transactions into a single transaction on layer 1. This distributes the L1 transaction fees across everyone in the rollup, making it cheaper for each user. Rollup transactions get executed outside of layer 1 but the transaction data gets posted to layer 1. By posting transaction data onto layer 1, rollups inherit the security of Ethereum. There are two different approaches to rollups: optimistic and zero-knowledge - they differ primarily on how this transaction data is posted to L1.
 
 ---
 
@@ -316,3 +395,13 @@ A proof-of-stake system is kept secure by the fact that you'd need 51% of the to
 [What is a 51% Attack](https://www.investopedia.com/terms/1/51-attack.asp)
 
 [Ethereum Consensus Mechanism](https://ethereum.org/en/developers/docs/consensus-mechanisms)
+
+[Why Are Most dApps Built on Ethereum?](https://www.gemini.com/cryptopedia/dapps-ethereum-decentralized-application)
+
+[Merge, Surge, Verge, Purge, Splurge 到底是什麼？](https://cryptowesearch.com/blog/all/eth-update)
+
+[Ethereum 2.0](https://www.investopedia.com/ethereum-2-0-6455959)
+
+[Layer 2](https://ethereum.org/en/layer-2/)
+
+[Ethereum Merge? Get Ready for the 'Surge, Verge, Purge, and Splurge', Says Vitalik Buterin](https://decrypt.co/105707/ethereum-merge-surge-verge-purge-splurge-vitalik-buterin)
