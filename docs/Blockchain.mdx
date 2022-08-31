@@ -77,6 +77,8 @@ First proposed as a research project in 1991, the blockchain concept predated it
 - [Blockchain Demo Video 2](https://youtu.be/xIDL_akeras)
 - [Blockchain Mining Difficulty](http://blog.geveo.com/Blockchain-Mining-Difficulty)
 
+---
+
 ## Consensus Mechanism
 
 ### What Is a Consensus Mechanism?
@@ -179,11 +181,33 @@ Again, this is possible on smaller cryptocurrency networks because there is less
 
 ### Proof-of-Stake
 
-[PoS](https://www.investopedia.com/terms/p/proof-stake-pos.asp)
+Proof-of-stake is a cryptocurrency consensus mechanism for processing transactions and creating new blocks in a blockchain. A consensus mechanism is a method for validating entries into a distributed database and keeping the database secure. In the case of cryptocurrency, the database is called a blockchain—so the consensus mechanism secures the blockchain.
 
-### Ethereum Consensus Mechanism
+Learn more about proof-of-stake and how it is different from proof-of-work. Additionally, find out the issues proof-of-stake is attempting to address within the cryptocurrency industry.
 
-https://ethereum.org/en/developers/docs/consensus-mechanisms
+> **KEY TAKEAWAYS**
+>
+> - With proof-of-stake (POS), cryptocurrency owners validate block transactions based on the number of coins a validator stakes.
+> - Proof-of-stake (POS) was created as an alternative to Proof-of-work (POW), the original consensus mechanism used to validate a blockchain and add new blocks.
+> - While PoW mechanisms require miners to solve cryptographic puzzles, PoS mechanisms require validators to simply hold and stake tokens.
+> - Proof-of-stake (POS) is seen as less risky in terms of the potential for an attack on the network, as it structures compensation in a way that makes an attack less advantageous.
+> - The next block writer on the blockchain is selected at random, with higher odds being assigned to nodes with larger stake positions.
+
+Proof-of-stake reduces the amount of computational work needed to verify blocks and transactions that keep the blockchain, and thus a cryptocurrency, secure. Proof-of-stake changes the way blocks are verified using the machines of coin owners. The owners offer their coins as collateral for the chance to validate blocks. Coin owners with staked coins become "validators."
+
+Validators are then selected randomly to "mine," or validate the block. This system randomizes who gets to "mine" rather than using a competition-based mechanism like proof-of-work.
+
+To become a validator, a coin owner must "stake" a specific amount of coins. For instance, Ethereum will require 32 ETH to be staked before a user can become a validator. Blocks are validated by more than one validator, and when a specific number of the validators verify that the block is accurate, it is finalized and closed.
+
+Different proof-of-stake mechanisms may use different methods for validating blocks—when [Ethereum](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/) transitions to PoS, it will use shards for transaction submissions. A validator will verify the transactions and add them to a shard block, which requires at least 128 validators to attest to. Once shards are validated and block created, two-thirds of the validators must agree that the transaction is valid, then the block is closed.
+
+> **FAST FACT**
+>
+> To summarize the Ethereum PoS process, you might say it is validation sharing across a cryptocurrency network instead of a validation competition.
+
+---
+
+## Ethereum Consensus Mechanism
 
 **Proof-of-work**
 
@@ -199,9 +223,58 @@ The network is kept secure by the fact that you'd need 51% of the network's comp
 
 More on [proof-of-work](https://ethereum.org/en/developers/docs/consensus-mechanisms/pow/)
 
-**Proof-of-stake**
+---
+
+### Ethereum Proof-of-Stake
 
 Ethereum **_plans to upgrade_** to a **proof-of-stake (PoS)** consensus protocol.
+
+Proof-of-stake comes with a number of improvements to the proof-of-work system:
+
+- better energy efficiency - there is no need to use lots of energy on proof-of-work computations
+- lower barriers to entry, reduced hardware requirements - there is no need for elite hardware to stand a chance of creating new blocks
+- reduced centralization risk - proof-of-stake should lead to more nodes securing the network
+- because of the low energy requirement less ETH issuance is required to incentivize participation
+- economic penalties for misbehaviour make 51% style attacks exponentially more costly for an attacker compared to proof-of-work
+- the community can resort to social recovery of an honest chain if a 51% attack were to overcome the crypto-economic defenses.
+
+**VALIDATORS**
+
+To participate as a validator, a user must deposit 32 ETH into the deposit contract and run three separate pieces of software: an execution client, a consensus client, and a validator. On depositing their ether, the user joins an activation queue that limits the rate of new validators joining the network. Once activated, validators receive new blocks from peers on the Ethereum network. The transactions delivered in the block are re-executed, and the block signature is checked to ensure the block is valid. The validator then sends a vote (called an attestation) in favor of that block across the network.
+
+Whereas under proof-of-work, the timing of blocks is determined by the mining difficulty, in proof-of-stake, the tempo is fixed. Time in proof-of-stake Ethereum is divided into slots (12 seconds) and epochs (32 slots). One validator is randomly selected to be a block proposer in every slot. This validator is responsible for creating a new block and sending it out to other nodes on the network. Also in every slot, a committee of validators is randomly chosen, whose votes are used to determine the validity of the block being proposed.
+
+**FINALITY**
+
+A transaction has "finality" in distributed networks when it's part of a block that can't change without a significant amount of ether getting burned. On proof-of-stake Ethereum, this is managed using "checkpoint" blocks. The first block in each epoch is a checkpoint. Validators vote for pairs of checkpoints that it considers to be valid. If a pair of checkpoints attracts votes representing at least two-thirds of the total staked ether, the checkpoints are upgraded. The more recent of the two (target) becomes "justified". The earlier of the two is already justified because it was the "target" in the previous epoch. Now it is upgraded to "finalized". To revert a finalized block, an attacker would commit to losing at least one-third of the total supply of staked ether (currently around $10,000,000,000). The exact reason for this is explained [in this Ethereum Foundation blog post](https://blog.ethereum.org/2016/05/09/on-settlement-finality/). Since finality requires a two-thirds majority, an attacker could prevent the network from reaching finality by voting with one-third of the total stake. There is a mechanism to defend against this: the [inactivity leak](https://arxiv.org/pdf/2003.03052.pdf). This activates whenever the chain fails to finalize for more than four epochs. The inactivity leak bleeds away the staked ether from validators voting against the majority, allowing the majority to regain a two-thirds majority and finalize the chain.
+
+**FORK CHOICE**
+
+When the network performs optimally and honestly, there is only ever one new block at the head of the chain, and all validators attest to it. However, it is possible for validators to have different views of the head of the chain due to network latency or because a block proposer has equivocated. Therefore, consensus clients require an algorithm to decide which one to favor. The algorithm used in proof-of-stake Ethereum is called [LMD-GHOST](https://arxiv.org/pdf/2003.03052.pdf), and it works by identifying the fork that has the greatest weight of attestations in its history.
+
+**ATTESTATIONS**
+
+Every epoch (6.4 minutes) a validator proposes an [attestation](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/attestations/) to the network. The attestation is for a specific slot in the epoch. The purpose of the attestation is to vote in favor of the validator's view of the chain, in particular the most recent justified block and the first block in the current epoch (known as `source` and `target` checkpoints). This information is combined for all participating validators, enabling the network to reach consensus about the state of the blockchain.
+
+The attestation contains the following components:
+
+- `aggregation_bits`: a bitlist of validators where the position maps to the validator index in their committee; the value (0/1) indicates whether the validator signed the `data` (i.e. whether they are active and agree with the block proposer)
+- `data`: details relating to the attestation, as defined below
+- `signature`: a [BLS signature](https://en.wikipedia.org/wiki/BLS_digital_signature) that aggregates the signatures of individual validators
+
+The first task for an attesting validator is to build the data. The data contains the following information:
+
+- `slot`: The slot number that the attestation refers to
+- `index`: A number that identifies which committee the validator belongs to in a given slot
+- `beacon_block_root`: Root hash of the block the validator sees at the head of the chain (the result of applying the fork-choice algorithm)
+- `source`: Part of the finality vote indicating what the validators see as the most recent justified block
+- `target`: Part of the finality vote indicating what the validators see as the first block in the current epoch
+
+Once the `data` is built, the validator can flip the bit in `aggregation_bits` corresponding to their own validator index from 0 to 1 to show that they participated.
+
+Finally, the validator signs the attestation and broadcasts it to the network.
+
+---
 
 **Block creation**
 
@@ -211,9 +284,9 @@ Proof-of-stake is done by validators who have staked ETH to participate in the s
 
 A proof-of-stake system is kept secure by the fact that you'd need 51% of the total staked ETH to defraud the chain. And that your stake is slashed for malicious behaviour.
 
-More on [proof-of-stake](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/)
+---
 
-## 以太坊發展路線
+## Ethereum Misc. and Ethereum 2.0
 
 展开写
 [Merge, Surge, Verge, Purge, Splurge 到底是什麼？](https://cryptowesearch.com/blog/all/eth-update)
@@ -223,6 +296,8 @@ More on [proof-of-stake](https://ethereum.org/en/developers/docs/consensus-mecha
 [Ethereum 2.0](https://www.investopedia.com/ethereum-2-0-6455959)
 
 [Layer 2](https://ethereum.org/en/layer-2/)
+
+---
 
 ## Credits
 
