@@ -2,6 +2,7 @@
   "name": "Martin's Study Notes",
   "sidebar": [
     ["Overview", "/"],
+    ["Looksrare Comprehensive Review", "/Looksrare_Comprehensive_Review"],
     ["Uniswap AMM Study", "/UniSwap_AMM_Study"],
     ["Sushiswap Study", "/Sushiswap_Study"],
     ["Blockchain", "/Blockchain"],
