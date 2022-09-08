@@ -22,11 +22,9 @@ An NFT (Non-Fungible Token) is a piece of data that is stored on a blockchain th
 
 ## What is LooksRare
 
---- need quillbot
+LooksRare is a NFT marketplace with a focus on the community, describing itself as a platform “by NFT people, for NFT people”. LooksRare has drawn a lot of interest in the NFT market since its launch on January 11th of this year, primarily because, unlike VC-backed OpenSea, it genuinely conforms to the Web3 principles by rewarding users for their participation and staking its own token [$LOOKS](https://coinmarketcap.com/currencies/looksrare/). It gained notice right away in terms of both [trading volumes](https://dune.xyz/queries/344872/657053?Aggregation=Days) (wash trading was making a lot of noise) and [protocol profitability](https://twitter.com/tokenterminal/status/1488569340286967815/photo/1).
 
-LooksRare is the community-first NFT marketplace, branding itself as a platform “by NFT people, for NFT people”. Since its launch in January 11th this year, LooksRare captured a lot of attention in the NFT space, mainly because we could say that unlike VC-backed OpenSea it truly adheres to the Web3 principles giving back to the users with rewarding them for activity and staking its own token [$LOOKS](https://coinmarketcap.com/currencies/looksrare/). It quickly attracted attention in terms of both [trading volumes](https://dune.xyz/queries/344872/657053?Aggregation=Days) (a lot of noise coming from wash trading) and [protocol profitability](https://twitter.com/tokenterminal/status/1488569340286967815/photo/1).
-
-LooksRare **aims** to actively reward traders, collectors and creators for participating. There are several types of rewards:
+LooksRare **aims** to actively reward those who trade, collect, and create. Rewards come in a variety of forms:
 
 - LOOKS Staking to Earn **Platform Fees**: LOOKS token stakers earn 100% of the trading fees (in WETH) on LooksRare.
 - **Listing Rewards**: LooksRare's Listing Rewards program enables NFT collectors and traders to earn LOOKS tokens just by listing NFTs for sale on LooksRare.
@@ -34,11 +32,13 @@ LooksRare **aims** to actively reward traders, collectors and creators for parti
 - **LOOKS Staking Rewards**: When you stake LOOKS, you also earn additional LOOKS on top of the trading fee rewards received in WETH.
 - **Liquidity Provider Rewards** (Discontinued since 2022/02/15, 10:15 AM (UTC)): LooksRare is incentivizing liquidity for the LOOKS token by giving rewards for users that stake LOOKS-ETH UniV2 LP tokens. The announcement for the discontinuation is [here](https://docs.looksrare.org/blog/looks-emission-phase-2#changes-to-lp-staking-rewards).
 
-There were also a LOOKS token airdrop as part of LooksRare's initial launch. The airdrop aims to attract users who have transacted **>3ETH** worth of NFTs on **OpenSea** between 16 Jun and 16 Dec, 2021. The details of token allocation can be found [here](https://docs.looksrare.org/guides/faqs/what-is-the-looks-airdrop). Incentivizing this group of valuable users can naturally attract them to list and trade NFTs on LooksRare so that the trading volume could increase. This go-to-market approach of attracting users from an existing platform into a competing one by offering some kind of incentive (typically tokens) is known as "[Vampire Attack](https://omerkeman.medium.com/what-is-a-vampire-attack-in-crypto-fdfc5e1fc5fc)".
+As a part of LooksRare's initial launch, there was an airdrop of LOOKS tokens as well. Users who have transacted **>3ETH** worth of NFTs on **OpenSea** between 16 June and 16 December 2021 are the target users for the airdrop. You may find information on token allocation [here](https://docs.looksrare.org/guides/faqs/what-is-the-looks-airdrop). By providing incentives to this group of valuable users, the trading volume rises as a result of their natural inclination to list and trade NFTs on LooksRare. The term "[Vampire Attack](https://omerkeman.medium.com/what-is-a-vampire-attack-in-crypto-fdfc5e1fc5fc)" refers to such go-to-market strategy of drawing users away from an established platform and toward a competing one by providing an incentive (usually tokens).
 
-The detailed analysis of rewards and airdrop will be in the "**How LooksRare Works**" section below.
+The section below titled "**How LooksRare Works**" will provide a thorough analysis of rewards and airdrop.
 
-The rewards and incentives mentioned above successfully boosted trading on LooksRare at first as shown in the graph.
+---
+
+As seen in the graph, the rewards and incentives outlined above initially successfully increased trading on LooksRare.
 
 <iframe
   style={{ width: "100%", height: "400px" }}
@@ -48,7 +48,7 @@ The rewards and incentives mentioned above successfully boosted trading on Looks
   (Graph: LooksRare Volume without wash trades filtered)
 </div>
 
-However, people found opportunities to capture the rewards through [wash trading](https://www.investopedia.com/terms/w/washtrading.asp). In this context, it means the same person trade the NFTs via his own different wallets to capture the trading rewards. The following graph shows the trading volume with wash trading filtered is drastically smaller. The method of applying this filter and why the numbers are shockingly different were explained by Web3 data scientist Hildobby [here](https://twitter.com/hildobby_/status/1489706897259175948?s=20&t=u9zLiHpij4TriNIpjkgs3g).
+However, through [wash trading](https://www.investopedia.com/terms/w/washtrading.asp), speculators found opportunities to reap the rewards. In this case, it means that the same individual trades NFTs using his/her own different wallets in order to benefit from trading rewards. The following graph demonstrates how significantly less trading volume when wash trading is filtered. [Here](https://twitter.com/hildobby_/status/1489706897259175948?s=20&t=u9zLiHpij4TriNIpjkgs3g), Web3 data scientist Hildobby explains how this filter was used and why the figures are startlingly different.
 
 <iframe
   style={{ width: "100%", height: "400px" }}
@@ -58,21 +58,19 @@ However, people found opportunities to capture the rewards through [wash trading
   (Graph: LooksRare Volume with wash trades filtered)
 </div>
 
-There are multiple problems caused with wash trading from setting the wrong incentives for the users to distorting the numbers, however I agree with the [argument](https://twitter.com/dingalingts/status/1481135479940874241) that such mechanic if temporary in nature is proportional to vampire a network effect and take a chunk of OpenSea volume that daily generates millions of USD in fees. LooksRare approaches the wash trading as risky for the traders as they do not know how much volume other traders are going to make. Looksrare also added in the interview that they intend to make such practices unprofitable in the future without any further details.
+However, I agree with the [argument](https://twitter.com/dingalingts/status/1481135479940874241) that if used temporarily, such a technique may vampire a network and drain off some of the OpenSea volume, which every day generates millions of dollars in fees. LooksRare views wash trading as dangerous for the traders because they are unsure of how much other traders will contribute to the total trading volume. LooksRare responsed to wash trading in their [official docs](https://docs.looksrare.org/about/rewards/trading-rewards#what-happens-if-theres-wash-trading).
 
 <Tweet id="1481135479940874241" />
 
-Let's have a quick look at the **team** and what they get from this project.
+Let's have a quick review at the **team** and what they get from this project.
 
-- Two anons known as Guts and [Zodd](https://twitter.com/ZoddLooksRare) have built the platform in 28 (currently, 14 previously) people team. According to the [interview with The Block](https://www.theblockcrypto.com/news+/132031/why-two-nft-nerds-built-looksrare-and-where-they-want-to-take-it-next) the co-founders are “NFT nerds” that are active in the NFT space for a long time under different pseudonyms. They could not fork OpenSea to achieve what they wanted and they created LooksRare based on their frustration with current NFT marketplaces. The team said that they coded the marketplace's smart contracts in modular way that will allow them to make big changes at rapid pace. They also have an intention to support L2 networks that would allow for cheaper and faster transactions. The team is active and does a lot of [polishing in terms of UX](https://twitter.com/LooksRareNFT/status/1489602374175846401), makes a [steady progress](https://twitter.com/ZoddLooksRare), and actively [hiring](https://docs.looksrare.org/about/category/hiring) for various positions.
-- As the team also owns the token, they are incentivized to keep building the platform and improve the product, as the value of the token is hinges on the transaction volume/fee of the platform. We can also see the commitment of the team through the vesting schedule. The team is not receiving any LOOKS tokens until half a year. This signals the team actually plans to build the platform instead of a pump & dump project. The token emission schedule and token allocation will be analyzed in "**Tokenomics**" under "**How LooksRare Works**" section as well.
-- Although the team stays anonymous, we can infer that there are Chinese members participated in this project directly as the Docs, website, Discord only supported English and Chinese at the beginning.
+- The platform was created by a team of 28 people (14 previously) under the anonymous Guts and [Zodd](https://twitter.com/ZoddLooksRare). The co-founders are "NFT nerds" who have long been active in the NFT field using various aliases, according to the [interview with The Block](https://www.theblockcrypto.com/news+/132031/why-two-nft-nerds-built-looksrare-and-where-they-want-to-take-it-next). They were frustrated with the current NFT marketplaces and decided to start LooksRare because they could not fork OpenSea to get what they needed. The team said that by structuring the smart contracts for the marketplace in a modular manner, they would be able to make modifications quickly. They also intend to support L2 networks, which would enable less expensive and quicker transactions. The team is active, [polishes the user experience](https://twitter.com/LooksRareNFT/status/1489602374175846401) a lot, makes [consistent progress](https://twitter.com/ZoddLooksRare), and is actively [recruiting](https://docs.looksrare.org/about/category/hiring) for various positions.
+- Since the team also holds the token, they have an incentive to continue developing the platform and enhancing the product because the token's value is based on the amount of transactions and platform fees. The vesting schedule also demonstrates the team's dedication. The team won't start earning LOOKS tokens for another six months. This suggests that, as opposed to a pump-and-dump project, the team truly intends to construct the platform. The token emission schedule and token allocation will be analyzed in "**How LooksRare Works**" section as well.
+- As the Docs, website, and Discord initially only supported English and Chinese, we might surmise that there are Chinese members who directly participated in this project even though the team remains anonymous.
 
 ## How LooksRare Works
 
---- need quillbot
-
-To understand how LooksRare works, we can first learn its LOOKS token, which is the most important system behind it and makes it stand out from OpenSea.
+The most crucial component of LooksRare's system, the LOOKS token, which distinguishes it from OpenSea, can be learned first in order to comprehend how it works.
 
 ![](https://miro.medium.com/max/1400/0*k7Fiq0rBaPl9dgPY.png)
 
@@ -89,7 +87,7 @@ To understand how LooksRare works, we can first learn its LOOKS token, which is 
 |       **Treasury**       |           10%            | 100,000,000       |
 |     **Total Supply**     |         **100%**         | **1,000,000,000** |
 
-The above shows the token allocation between the team, the investors, the protocol and the community. Focusing on the **community** token:
+The table above illustrates how tokens are distributed across the team, investors, protocol, and community. Let's focus on the **community** tokens:
 
 **Airdrop**: 12% (120M) of the token is used in Airdrop.
 
@@ -109,15 +107,19 @@ The above shows the token allocation between the team, the investors, the protoc
   (Graph: Number of claimed eligible addresses)
 </div>
 
-At the time of writing, `67.31% (124,665/185,223)` of eligible addresses have claimed `81.97% (98,366,481/120,000,000)` of LOOKS airdrop. For more stats for the Airdrop, have a look at this [stats](https://dune.xyz/hildobby/LOOKS-Airdrop). As we discussed earlier, airdroping this group of valuable users incentives them to list and trade NFTs on LooksRare, which can boost trading in the marketplace.
+As of this writing, `81.97% (98,366,481/120,000,000)` of the LOOKS airdrop has been claimed by `67.31% (124,665/185,223)` of the eligible addresses. For more stats for the Airdrop, have a look at this [stats](https://dune.xyz/hildobby/LOOKS-Airdrop). Airdropping this group of valuable users encourages them to list and trade NFTs on LooksRare, which can increase trading volume in the market, as we previously indicated.
 
 **Staking rewards**: 18.9% (189M) of the tokens are distributed as staking rewards.
 
-In the short run, on top of the trading fee that you could earn when you stake LOOKs, you could also earn an extra staking rewards distribution from the project. This serves as the extra incentive for people to stake LOOKS at the early stage of the project. This is also why we could see a staking reward goes up to 1000%. In fact, roughly half of the staking reward comes from the staking rewards (LOOKS), while another half comes from the trading fees (WETH). The rewards are shared proportionally among the stakers, and hence as user number increases the APR return gradually decreases.
+Along with the trading fee you might receive when you stake LOOKs, the project might give you an additional staking rewards distribution in the short run. This gives people an additional incentive to stake LOOKS at the project's early stages. This is also the reason why a staking reward increase to 1000% is possible.
 
-When you stake LOOKS, you also earn additional LOOKS on top of the trading fee rewards received in WETH. Staked LOOKS tokens are [auto-compounded](https://docs.looksrare.org/about/rewards/looks-staking-rewards#what-does-auto-compounding-mean) for users that wish to just leave their LOOKS tokens staked. The calculation of staking rewards has a fairly simple formula (Actually, the math of LooksRare so far is always simple. We will discuss its pros and cons later):
+Actually, about half of the staking reward comes from the staking rewards (LOOKS), with the remaining half comes from the trading fees (WETH). Since the stakers split the benefits proportionally, the APR return eventually declines as the number of users rises.
 
-User A's LOOKS **staking rewards** per block are calculated by: `LOOKS per block * (LOOKS staked by User A / Total amount of staked LOOKS)`
+In addition to the trading fee rewards earned in WETH, you also gain additional LOOKS when you stake LOOKS. Users who want to just leave their LOOKS tokens staked will have their staked LOOKS tokens [automatically compounded](https://docs.looksrare.org/about/rewards/looks-staking-rewards#what-does-auto-compounding-mean).
+
+The calculation of staking rewards has a fairly simple formula (Actually, LooksRare's math has always been straightforward. We will discuss its pros and cons later):
+
+The formula used to determine User A's LOOKS **staking rewards** per block is: `LOOKS per block * (LOOKS staked by User A / Total amount of staked LOOKS)`
 
 **Example**
 
@@ -133,22 +135,22 @@ Based on the above, User A would receive: `189 * (10,000 / 1,000,000) = 1.89 LOO
 |     C     | 1,560,000 blocks (240 days) | 35.4375 LOOKS       | 230,343.75        |
 |     D     | 2,346,250 blocks (361 days) | 18.90 LOOKS         | 122,850.00        |
 
-LOOKS staking rewards will be earned over 4 phases with differing reward rates, based on a schedule of 6,500 Ethereum blocks per day.
+Based on a schedule of 6,500 Ethereum blocks per day, LOOKS staking rewards will be paid during 4 phases at varying reward rates.
 
 **Trading rewards**: 44.1% (441M) of the tokens are distributed as trading rewards.
 
-Trading rewards are a core part of LooksRare's token economy as it seeks to become the most liquid marketplace for NFTs in the world. Users who trade any NFTs on LooksRare earn trading rewards in the form of LOOKS, LooksRare's platform token. Both the buyer and seller of an item earn rewards for their trading volume (except for private sales). Trading rewards are calculated daily and rewarded to users 2 hours after the end of each day.
+The token economy of LooksRare, which aims to become the most liquid NFT market in the world, is fundamentally based on **trading rewards**. Trading rewards in the form of LOOKS, LooksRare's platform token, are given to users who trade any NFTs on the exchange. For their trade volume, both the buyer and the seller of an item receive rewards (except for private sales). Users receive trading rewards two hours after the end of each day after they are calculated daily.
 
-Similarly, there are extra trading rewards to those early adopters and trade NFTs via LooksRare. The distribution follows the below schedule and runs out in 721 days.
+Similarly, early adopters who trade NFTs through LooksRare receive additional trading benefits. The distribution runs out in 721 days according to the timeline below.
 
 | **PHASE** |         **Length**          | **LOOKS Per Day For Trading Rewards** |
-| :-------: | :-------------------------: | ------------------------------------- |
-|     A     |  195,000 blocks (30 days)   | 2,866,500.00                          |
-|     B     |  585,000 blocks (90 days)   | 1,361,587.50                          |
-|     C     | 1,560,000 blocks (240 days) | 537,468.75                            |
-|     D     | 2,346,250 blocks (361 days) | 286,650.00                            |
+| :-------: | :-------------------------: | :-----------------------------------: |
+|     A     |  195,000 blocks (30 days)   |             2,866,500.00              |
+|     B     |  585,000 blocks (90 days)   |             1,361,587.50              |
+|     C     | 1,560,000 blocks (240 days) |              537,468.75               |
+|     D     | 2,346,250 blocks (361 days) |              286,650.00               |
 
-Every day, trading rewards are calculated based on each user's trading volume on LooksRare, as a percentage of the total platform trading volume, excluding private sales.
+Each day, trade awards are computed based on each user's LooksRare trading volume as a proportion of all daily trading volume on the site, excluding private sales.
 
 `User A's trading rewards on Day 1 = c * a / b`
 
@@ -165,13 +167,15 @@ Where:
 
 Based on the above, on Day 1, User A would receive: `2,866,500 * (10 / 10,000) = 2,866.5 LOOKS`
 
-**Platform Fees**: LooksRare collects a basic sales fee of 2% (in WETH) on all NFT sales excluding private sales. All the WETH collected from these fees are consolidated at the end of each recurring 6,500 Ethereum block period (roughly 24 hours) and then **distributed to LOOKS stakers in a linear format per block over the next 6,500 block period**.
+**Platform Fees**:
+
+LooksRare charges a baseline 2% (in WETH) sales fee on all NFT transactions aside from private sales. At the conclusion of each recurrent 6,500 Ethereum block period (approximately 24 hours), all WETH earned from these fees is consolidated and **distributed to LOOKS stakeholders in a linear format per block during the following 6,500 block period**.
 
 **Active and Passive Staking**:
 
-The rewards for each day are calculated at the end of the previous period, then split between Active and Passive stakers before they're distributed. **The main difference between Active and Passive stakers is that LOOKS in passive staking do NOT earn additional LOOKS while staked**. **Active stakers** are the majority of stakers, whose staked LOOKS tokens are fully unlocked. **Passive stakers** are stakers whose LOOKS tokens are locked for trading but unlocked for staking: namely Team, Treasury and Strategic sale tokens (which unlock over time - [read more](https://docs.looksrare.org/about/looks-tokenomics)).
+At the conclusion of the preceding period, incentives are calculated for each day and divided between active and passive stakeholder groups before being given out. Passive staking does not result in more Looks being earned when staked, which is the fundamental distinction between active and passive stakers. The bulk of stakers, whose staked LOOKS tokens are fully unlocked, are **active stakers**. The term "passive stakers" refers to holders of Team, Treasury, and Strategic sale tokens, which are locked for trade but unlocked for staking (which unlock over time - [learn more](https://docs.looksrare.org/about/looks-tokenomics)).
 
-At the start of each 6,500 block period, **a portion of the WETH fees** collected from the previous 6,500 blocks are sent to the Passive Staking address. The amount is calculated as: `c * a / b`
+A part of the WETH fees earned during the previous 6,500 blocks is sent to the Passive Staking address at the beginning of each 6,500 block period. The amount is determined as follows: `c * a / b`
 
 Where:
 
@@ -183,7 +187,9 @@ The remaining WETH is then sent to the Active Staking Pool.
 
 **How is WETH fee sharing calculated for Active LOOKS stakers?**
 
-For each 6,500 block period, the amount of WETH rewards to be distributed in each block to active stakers is calculated by: `Total WETH collected as fees in the prior 6500 block period / 6500`. Each user's amount of staked LOOKS at each block is then compared against the total amount of LOOKS staked at each block, with this being done at every block within the 6,500 block period to find the total amount of WETH rewards received.
+The amount of WETH rewards to be awarded to active stakers in each block for each 6,500-block period is determined as follows: `Total WETH collected as fees in the prior 6500 block period / 6500`.
+
+Each user's amount of staked LOOKS at each block is then compared against the total amount of LOOKS staked at each block, with this being done at every block within the 6,500 block period to find the total amount of WETH rewards received.
 
 **Example**
 
@@ -199,21 +205,25 @@ For each 6,500 block period, the amount of WETH rewards to be distributed in eac
 - This calculation each block will then continue for another 6,498 blocks (since our example covers a 6,500 block period), with 0.027692 WETH as the amount to be earned per block.
 - The `WETH fees generated from trades` on the LooksRare platform in the 6,500-block period between block #6501 and block #13000 will then be used as the rewards to be distributed linearly over the next period, which will be from block #13001 and #19500.
 
-With discussing the tokenmics of LooksRare, you may now wonder its economic model and how does the model support the platform. As we mentioned above, the math behind each rewards is straighforward. You might noticed that they have a similar pattern: `rewards = (# of User's XXX / # of Total XXX) * Periodical XXX Bonus`. Such simplicity has both pros and cons. On the one hand, it's easy to come up with and implement. Users can understand it quickly and start playing with the platform & the tokens. Not like DeFi project, NFT marketplace should be straighforward for the users to use since the users might not be interested in complicated math formulas as the ones of DeFi. On the other hand, speculators can find the weakness of simple rewarding mechanism more easily. [Wash trading](https://docs.looksrare.org/about/rewards/trading-rewards#what-happens-if-theres-wash-trading) is one of the example that shows the economic model is exposed to such "attack". I made a circular flow chart to explain the economic model clearly:
+You might be wondering about LooksRare's economic model at this point after reading about its tokenomics and how it supports the platform. The arithmetic behind each reward is straightforward, as we just mentioned. They follow a similar pattern: `rewards = (# of User's XXX / # of Total XXX) * Periodical XXX Bonus`. Such simplicity has both pros and cons. On the one hand, it's easy to come up with and put into practice. Users may easily grasp it and begin experimenting with the platform and tokens. Unlike the DeFi project, the NFT marketplace should be simple for users to use because they might not be interested in complex mathematical calculations like those used in DeFi.
+
+On the other hand, speculators can more readily see the flaws in a straightforward rewarding mechanism. [Wash trading](https://docs.looksrare.org/about/rewards/trading-rewards#what-happens-if-theres-wash-trading) is one of the example that shows the economic model is susceptible to such "attack".
+
+To effectively describe the economic model, I created a circular flow chart:
 
 ![](https://i.imgur.com/DrjSDBI.png)
 
-The initial airdrop attracted valuable users from OpenSea to list NFT on LooksRare --> Token in circulation increases and there are NFTs coming to the platform. Trading rewards boost the trading volume --> Platform collects platform fee in WETH as staking rewards to give back to stakers --> Staking rewards APR increases (up to 1,000% not long after inital launch) so that users tend to stake their LOOKS token --> Token in circulation decreases. The token price increases as the platform gets more popular and the token in circulation gets smaller --> More people comes to use the platform and contribute to trading volume, then the circulation continues. Wash trading could happen since the value of LOOKS tokens earned was high enough to cover the cost of platform fee in WETH.
+The initial airdrop attracted valuable users from OpenSea to list NFT on LooksRare --> Token in circulation increases, and there are NFTs coming to the platform. Trading rewards boost the trading volume --> Platform collects platform fees in WETH as staking rewards to give back to stakers --> Staking rewards APR increases (up to 1,000% not long after initial launch) so that users tend to stake their LOOKS token --> Token in circulation decreases. The token price increases as the platform gets more popular and the token in circulation gets smaller --> More people use the platform and contribute to trading volume, the circulation continues. Wash trading could happen since the value of LOOKS tokens earned was high enough to cover the cost of the platform fee in WETH.
 
 ![](https://i.imgur.com/9gz4s8N.png)
 
-However, the model can also be suffering from "Token value death spiral" because of external factors like crypto/NFT [bear market](https://www.investopedia.com/terms/b/bearmarket.asp). When it's bear market, trading volume decreases drastically --> staking rewards APR decreases and token in circulation increases --> token value decreases so many users will leave --> trading volume keeps decreasing and the "death spiral" begins.
+However, the model can also be suffering from a "Token value death spiral" because of external factors like crypto/NFT [bear market](https://www.investopedia.com/terms/b/bearmarket.asp). When it's a bear market, trading volume decreases drastically --> staking rewards APR decreases and token in circulation increases --> token value decreases, so many users will leave --> trading volume keeps decreasing and the "death spiral" begins.
 
-As these two circular flow charts suggests, LooksRare is strongly binded to LOOKS token. At the time of writing, LOOKS token price is `$0.2647`. If the team wants to enter the healthy circulation again in the next bull market, they have to improve the platform and refine the rewarding model to attract and retain users.
+As these two circular flow charts suggest, LooksRare is strongly binded to the LOOKS token. At the time of writing, the LOOKS token price is `$0.2647`. If the team wants to enter the "healthy circulation" again in the next bull market, they have to improve the platform and refine the rewarding model to attract and retain users.
 
-That's it for the **business side** of LooksRare. Let's now have a glance on the **technical side**.
+That's it for the **business side** of LooksRare. Let's now have a glance at the **technical side**.
 
-All the deployed contract addresses can be found [here](https://docs.looksrare.org/developers/deployed-contract-addresses). I only picked some of the interesting ones to discuss due to space limitations. I may wrote another report to analyse the technical architecture of the LooksRare.
+This [page](https://docs.looksrare.org/developers/deployed-contract-addresses) contains a list of all the deployed contract addresses. Due to a lack of space, I just chose a few of the interesting ones to discuss. To analyze the LooksRare's technical architecture, I might write another report.
 
 Let's first look at the core of [LooksRare exchange](https://github.com/LooksRare/contracts-exchange-v1/blob/master/contracts/LooksRareExchange.sol). It execute NFT trade after the buyer and the seller have agreed on a price.
 
@@ -389,16 +399,14 @@ emit TakerBid(
 
 The other two functions are similar so I'll leave them for you to explore.
 
---- needs quillbot
-
 ## Competitor Review
 
-We've talked a lot about LooksRare itself and we have enough knowledge to compare it with competitors.
+LooksRare has been discussed extensively, and we now have sufficient information to evaluate its competitors.
 
 - OpenSea
-  - Overview: OpenSea has styled itself as the world's largest NFT marketplace. There are approximately 700 projects which range from trading card games to collectible games to digital art projects and name systems such as ENS (Ethereum Name Service). Founded in 2017, with over 200 employees, 600k users, 80million NFTs, and $20billion in trading volume, OpenSea supports multiple blockchains, with Ethereum being the largest.
+  - Overview: The largest NFT market in the world, according to OpenSea, there are about 700 projects total, including naming systems like ENS (Ethereum Name Service), collecting games, trading card games, and collectible games. OpenSea was founded in 2017 and currently supports many blockchains, with Ethereum being the largest. It has over 200 workers, 600k users, 80 million NFTs, and $20 billion in trading activity.
   - In 2021, nearly 90% of NFT trading volume happened on OpenSea.
-    - Since it's the dominant of NFT industry, the user stickiness makes other marketplaces hard to attract users in the first place.
+    - Since it dominates the NFT industry, competing marketplaces have a difficult time attracting people away from it in the first place. New users will tend to use the marketplace that is currently dominating the market.
   - Platform Fee: `2.5%`
   - Offering three different options for listing:
     - Fixed Price Listings: Fixed price set by the seller
@@ -407,7 +415,7 @@ We've talked a lot about LooksRare itself and we have enough knowledge to compar
   - Backed by Venture Capital and does not give back to the community (Web3 principles).
   - Does NOT support batch buy/sweep floors
 - gem.xyz
-  - Overview: An NFT marketplace aggregator that collects all NFT transaction information from different chains and consolidates them into a single place - improves the efficiency and effectiveness of the transaction
+  - Overview: An NFT marketplace aggregator that gathers all NFT transaction information from different chains and consolidates it in one place - improves the efficiency and effectiveness of the transaction.
   - Features:
     - Buy multiple NFTs in a single transaction
     - [Sweep](https://thedefiant.io/what-is-sweep-the-floor) the collection floor
@@ -418,11 +426,11 @@ We've talked a lot about LooksRare itself and we have enough knowledge to compar
   - The math of rewards is more complex than LooksRare's
   - Does support batch buy/sweep floors
 
-It's worth mentioning that [LooksRare has been integrated with geniexyz](https://twitter.com/LooksRare/status/1512762316408107008) to allow users to sweep the floor like they can do it using gem.xyz or [X2Y2](https://twitter.com/the_x2y2/status/1497563809208500232?lang=en). These actively integrated new features (LooksRare's Collection offer, Trait offer, and Multi-cancellation) make LooksRare and X2Y2 competitive to OpenSea in the long run as they are making users' lives easier.
+It's worth mentioning that [LooksRare has been integrated with geniexyz](https://twitter.com/LooksRare/status/1512762316408107008) to allow users to sweep the floor like they can do it using gem.xyz or [X2Y2](https://twitter.com/the_x2y2/status/1497563809208500232?lang=en). Long-term competition between LooksRare and X2Y2 and OpenSea is increased by these actively integrated new features (LooksRare's Collection offer, Trait offer, and Multi-cancellation).
 
 ## Closing Thoughts
 
-New NFT marketplaces like LooksRare compete with market dominant OpenSea in a Web3 way by putting the community first. LooksRare and X2Y2 have successfully drawing attention and users from OpenSea through "Vampire Attack" but how to retain users is currently the most important problem. Though at the time of writing, the price of LOOKS ($0.26) and X2Y2 ($0.13) are lower than most of the users expected, we see that the team and community are still actively building the platform to make it better. The token prices reflect that the current NFT [bear market](https://www.investopedia.com/terms/b/bearmarket.asp) has a huge impact on these marketplaces. However, we still cannot say it's the end for LooksRare, X2Y2, and other platforms since the trading volume on OpenSea is also unsatisfactory. I believe if OpenSea has its own token, the price will also fall drastically. OpenSea was founded in 2017 but it success until NFT bull market in 2021. There will be platform(s) in the next bull market to end the dominance of OpenSea.
+By putting the community first, new NFT markets like LooksRare compete with industry leader OpenSea in a Web3 approach. Through "Vampire Attack," LooksRare and X2Y2 have effectively attracted people and attention from OpenSea, but retaining those users is currently the most essential issue. Although the prices of LOOKS ($0.26) and X2Y2 ($0.13) at the time of writing are less than most users had expected, we can see that the teams and community are still actively improving the platforms. The token prices demonstrate how significantly the current NFT [bear market](https://www.investopedia.com/terms/b/bearmarket.asp) has impacted various NFT marketplaces. However, given the trading volume on OpenSea is equally subpar, we cannot yet declare the demise of LooksRare, X2Y2, and other marketplaces. If OpenSea has its own cryptocurrency, I think the price will also drop significantly. OpenSea was formed in 2017, however it didn't achieve success until the 2021 NFT bull market. The supremacy of OpenSea will be challenged by innovative platform(s) in the upcoming bull market.
 
 ---
 
